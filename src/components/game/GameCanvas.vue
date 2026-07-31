@@ -9,6 +9,7 @@
  */
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { Engine } from '../../game/core/Engine.js'
+import TouchControls from './TouchControls.vue'
 
 const props = defineProps({
   phase: { type: String, required: true },
@@ -43,6 +44,16 @@ watch(() => props.phase, (next) => {
   engine.input.setCapturing(next === 'game')
 })
 
+// TouchControls no conoce InputHandler; sólo reporta números. Aquí es
+// donde ese vocabulario neutro se convierte en la API real del motor.
+function onTouchMove({ x, y }) {
+  engine?.input.setTouchAxis(x, y)
+}
+
+function onTouchFire(value) {
+  engine?.input.setTouchFiring(value)
+}
+
 onBeforeUnmount(() => {
   engine?.stop()
   engine = null
@@ -55,6 +66,12 @@ onBeforeUnmount(() => {
     class="stage-canvas pixelated"
     aria-hidden="true"
   ></canvas>
+
+  <TouchControls
+    :active="phase === 'game'"
+    @move="onTouchMove"
+    @fire="onTouchFire"
+  />
 </template>
 
 <style scoped>

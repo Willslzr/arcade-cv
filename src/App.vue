@@ -266,7 +266,9 @@ const year = new Date().getFullYear()
 
       <!-- Pantalla de resultados: fin de partida, iniciales y ranking -->
       <section v-else-if="isOver" class="over" aria-labelledby="over-heading">
-        <h1 id="over-heading" class="over__title">Game Over</h1>
+        <h1 id="over-heading" class="over__title" :class="{ 'over__title--victory': lastRun?.victory }">
+          {{ lastRun?.victory ? 'Mission Complete' : 'Game Over' }}
+        </h1>
 
         <p class="over__summary">
           <span class="over__stat">
@@ -378,6 +380,11 @@ const year = new Date().getFullYear()
   font-size: var(--t-2xl);
   color: var(--c-magenta);
   text-shadow: var(--glow-magenta);
+}
+
+.over__title--victory {
+  color: var(--c-phosphor);
+  text-shadow: var(--glow-phosphor);
 }
 
 .over__summary {

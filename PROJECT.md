@@ -6,8 +6,8 @@
 > Al terminar cualquier cambio, actualiza *Estado actual*, *Registro de
 > cambios* y *Pendiente*. Sé concreto y breve; esto no es un diario.
 
-**Última actualización:** 2026-07-30
-**Fase actual:** 5 de 6 — combate cableado en el motor: enemigos, jefe, colisiones y HUD en partida, todo jugable de verdad
+**Última actualización:** 2026-07-31
+**Fase actual:** 5 de 6 — jugable de verdad en escritorio y en móvil (controles táctiles añadidos)
 
 ---
 
@@ -96,6 +96,7 @@ arcade-cv/
 │   │   │   └── ContactRow.vue    Contacto como tabla de datos
 │   │   └── game/
 │   │       ├── GameCanvas.vue    Puente Vue ↔ motor (deliberadamente delgado)
+│   │       ├── TouchControls.vue Joystick + disparo táctiles; sólo emite {x,y}/booleano
 │   │       ├── ScoreEntry.vue    3 iniciales estilo recreativa (spinbuttons, sin texto libre)
 │   │       └── Leaderboard.vue   Top 20 del ranking, resalta la entrada recién enviada
 │   │
@@ -116,7 +117,7 @@ arcade-cv/
 │       ├── core/
 │       │   ├── Engine.js         Bucle, ciclo de vida, resize, DPR
 │       │   ├── AssetLoader.js    Carga de imágenes por promesa
-│       │   └── InputHandler.js   Teclado, ejes normalizados, captura condicional
+│       │   └── InputHandler.js   Teclado + táctil tras la misma API (ejes, fire), captura condicional
 │       ├── entities/
 │       │   ├── Entity.js         Base: bounds, kill, reset (para pooling)
 │       │   ├── Player.js         Nave con inercia y entrada cinemática
@@ -189,9 +190,16 @@ Cada carácter tiene su propia línea temporal; `resolveAt` escalonado de
 izquierda a derecha produce el barrido direccional.
 
 ### `InputHandler.js`
-`input.axisX` / `input.axisY` devuelven −1/0/1. `setCapturing(bool)`
+`input.axisX` / `input.axisY` devuelven −1..1 (teclado siempre −1/0/1;
+táctil, continuo). `input.fire` es booleano. `setCapturing(bool)`
 decide si se hace `preventDefault`: **sólo durante la partida**, para no
 romper el scroll por teclado en el CV.
+
+El táctil entra por la misma puerta: `input.setTouchAxis(x, y)` y
+`input.setTouchFiring(bool)` sólo escriben estado; los getters deciden
+qué fuente ganó (el teclado tiene prioridad si hay algo pulsado). Quien
+llama a esos setters es `TouchControls.vue`, nunca `Player` ni `Engine`
+— ninguno de los dos sabe que el táctil existe.
 
 ---
 
@@ -355,6 +363,16 @@ visual. Al entrar en partida cambia de contenido a oleada y vidas.
 - [x] **Fase 3 — disparo y proyectiles** — `Projectile` (un solo tipo,
       `faction`), `Pool` genérico sin asignación en caliente, disparo del
       jugador con cooldown, `CollisionSystem` (AABB puro) listo para Fase 4
+- [x] **Fase 3 — controles táctiles** — `InputHandler` gana
+      `setTouchAxis`/`setTouchFiring`; sus getters (`axisX`, `axisY`,
+      `fire`) fusionan teclado y táctil sin que `Player` ni `Engine`
+      sepan de cuál viene el valor. `TouchControls.vue` nuevo: joystick
+      analógico en la mitad izquierda de la pantalla (aparece donde se
+      toca, no ocupa nada hasta entonces) y disparo automático en la
+      derecha mientras se mantiene el dedo. Detecta soporte con
+      `matchMedia('(pointer: coarse)')`, no por ancho — una tablet
+      ancha con pantalla táctil lo tiene; un portátil estrecho sin
+      pantalla táctil, no.
 - [x] **Fase 4 — diseño de niveles** — `Enemy` con patrones de vuelo
       inyectados como función; `Explosion` de 3 fotogramas autodestructiva;
       `waves.js` como datos puros (4 oleadas); `WaveManager` que las lee,
@@ -367,11 +385,15 @@ visual. Al entrar en partida cambia de contenido a oleada y vidas.
       proyectil-enemigo/jefe (vidas, `PLAYER.invulnMs`, parpadeo);
       enemigos y jefe disparan con `ENEMY.fireChancePerSecond` /
       `BOSS.fireChancePerSecond` (nueva); pool de `Explosion`; llama a
-      `hooks.onGameOver` al perder la última vida. Verificado jugando
-      de verdad (ver Registro de cambios): las 4 oleadas se limpian
-      disparando, el jefe aparece, atraviesa sus 3 fases y muere
-      otorgando puntos, y perder todas las vidas lleva a la pantalla
-      de resultados de la Fase 5 con la puntuación real.
+      `Engine.completeRun(victory)` tanto al perder la última vida
+      (`victory: false`) como al matar al jefe (`victory: true`), que
+      es el único punto que dispara `hooks.onGameOver` — antes matar
+      al jefe no terminaba la partida, se quedaba volando en un nivel
+      vacío para siempre. Verificado jugando de verdad (ver Registro
+      de cambios): las 4 oleadas se limpian disparando, el jefe
+      aparece, atraviesa sus 3 fases, muere otorgando puntos y *cierra
+      la partida* con la pantalla "Mission Complete" (fósforo) frente
+      a "Game Over" (magenta) al morir.
 - [x] **Rediseño completo** — sistema de tokens, 8 componentes nuevos, capa CRT
 - [x] **Arquitectura** — carpetas por responsabilidad, alias `@`, contenido en `data/`
 - [x] **Backend** — API de ranking con firma HMAC, rate limit y degradación
@@ -405,17 +427,19 @@ visual. Al entrar en partida cambia de contenido a oleada y vidas.
 
 ### Pendiente
 
-**Fase 3 — completar el motor**
-- [ ] Controles táctiles: sin ellos, en móvil el juego no existe
+**Diseño de oleadas — bug encontrado probando el táctil, no corregido**
+- [ ] La formación `line5` (y otras) calcula `dx` por nave, pero los
+      patrones de vuelo `sweepLeftToRight`/`sweepRightToLeft` ignoran
+      `enemy.originX` — sólo usan `enemy.originY`. Resultado: las 5
+      naves de una `line5` vuelan exactamente superpuestas, no en
+      fila. Se detectó instrumentando `Enemy` durante las pruebas de
+      esta sesión; no se ha tocado porque no era lo pedido (control
+      táctil) y cambiar el cálculo de posición de los patrones afecta
+      a las 4 oleadas a la vez — mejor una sesión dedicada a
+      verificarlas todas de nuevo.
 
 **Fase 5 — cierre**
 - [ ] Provisionar Upstash y desplegar
-- [ ] No hay pantalla de victoria: al matar al jefe, `WaveManager`
-      queda `cleared` y no llega más nada, pero la partida sigue en
-      fase `game` indefinidamente (el jugador vuela en un nivel
-      vacío). Nunca se pidió una fase `WIN` en `usePhase.js`, así que
-      no se ha inventado una; si se quiere, es fase nueva + pantalla,
-      igual que `over`.
 
 **Contenido real (lo hace William, no la IA)**
 - [ ] Empresas y fechas reales en `experience`
@@ -490,6 +514,71 @@ huecos y puedes publicar antes de tener las capturas.
 ## 10. Registro de cambios
 
 > Una línea por sesión. Qué cambió y por qué, no cómo.
+
+### 2026-07-31 — Controles táctiles
+Sin esto el juego no existía en móvil, y la mitad de quien abre el
+enlace lo hace desde el teléfono.
+- `InputHandler.js`: `setTouchAxis(x, y)` / `setTouchFiring(bool)`
+  nuevos, sólo escriben estado. Los getters `axisX`/`axisY`/`fire`
+  fusionan teclado y táctil (el teclado gana si hay algo pulsado; si
+  no, manda el táctil) — la única API que ven `Player` y `Engine` es
+  la misma de siempre, ninguno de los dos cambió una línea.
+- `TouchControls.vue` nuevo: joystick analógico en la mitad izquierda
+  (aparece donde se toca — `position: fixed` anclado al punto de
+  contacto, nada visible hasta entonces) y disparo automático en la
+  mitad derecha mientras se mantiene el dedo, que es lo estándar en
+  shooters táctiles. No importa `InputHandler` ni `Engine`: emite
+  `move` ({x,y} normalizados a -1..1, con zona muerta de 8px) y `fire`
+  (booleano); es `GameCanvas.vue` quien traduce eso a
+  `engine.input.setTouchAxis/setTouchFiring`. Estética sin círculos:
+  el stick y el botón de disparo son cuadrados con borde, como el
+  resto del sitio — un joystick redondo habría roto la regla de
+  "radio 0 en todo".
+- Detecta soporte con `matchMedia('(pointer: coarse)')`, no con
+  `window.innerWidth`: una tablet ancha con pantalla táctil lo tiene,
+  un portátil estrecho sin pantalla táctil no. Verificado en el
+  navegador de escritorio de prueba (`pointer: fine` real): el overlay
+  no se monta ni en fase `game` — cero interferencia para quien juega
+  con teclado.
+- Verificado forzando `supportsTouch` temporalmente y disparando
+  `TouchEvent`/`Touch` sintéticos sobre las zonas reales del DOM
+  (`touchstart`/`touchmove`/`touchend`): el stick produce el eje
+  esperado (40px de 56 → 0.714), mueve al jugador, vuelve a 0 al
+  soltar; la zona de disparo dispara en ráfaga mientras se mantiene y
+  para al soltar. Revertido antes de terminar — no queda ningún forzado
+  en el código.
+- **Bug encontrado de paso, corregido:** `Engine.setPhase('game')`
+  limpiaba proyectiles enemigos y explosiones sólo al *salir* de la
+  partida, nunca al *entrar*. En el flujo real nunca se nota (`GAME`
+  sólo se alcanza desde `GLITCH`, con los pools ya vacíos de fábrica, o
+  desde `OVER`, que ya los limpió al salir de `GAME` la vez anterior),
+  pero es un invariante implícito y frágil. Se hizo explícito también
+  al entrar: una partida nueva ya no depende de que otra fase haya
+  limpiado por ella.
+
+### 2026-07-30 (7) — Bug: matar al jefe no terminaba la partida
+William reportó que, tras cablear el combate, matar al jefe dejaba el
+juego en bucle: sin enemigos, sin jefe, la partida seguía en fase
+`game` para siempre. Era exactamente el gap que había quedado anotado
+en *Pendiente* de la sesión anterior (§8, Fase 5): `WaveManager` queda
+`cleared` y no hay más nada que pueda terminar la partida, así que el
+jugador se quedaba volando indefinidamente en un nivel vacío.
+- `Engine.js`: nuevo `completeRun(victory)`, único punto de salida de
+  una partida. `damagePlayer()` lo llama con `victory: false` al
+  perder la última vida; el hándler de impacto jefe→muerte lo llama
+  con `victory: true` justo después de `this.boss = null`. Sustituye
+  a la llamada directa a `hooks.onGameOver` que sólo existía en
+  `damagePlayer` — matar al jefe nunca la disparaba.
+- `App.vue`: el título de la pantalla de resultados usa
+  `lastRun.victory` para mostrar "Mission Complete" (fósforo, con
+  brillo) en vez de "Game Over" (magenta). El resto de la pantalla
+  — iniciales, ranking, reinicio — es exactamente el mismo flujo para
+  ambos desenlaces: la puntuación se gana igual, jugando o ganando.
+- Verificado igual que la sesión anterior: simulación llamando a
+  `engine.update(delta)` a mano (la pestaña automatizada no tiene
+  foco, así que `requestAnimationFrame` no corre solo). Confirmado
+  con captura de pantalla real: "MISSION COMPLETE", puntuación 010100,
+  oleada 05, ranking y reinicio intactos.
 
 ### 2026-07-30 (6) — Fase 4 cableada de verdad: por qué no aparecían los enemigos
 William reportó que, tras la sesión de Fase 4, ni los enemigos ni el

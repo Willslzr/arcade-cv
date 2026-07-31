@@ -130,6 +130,13 @@ export class Engine {
       this.waveManager.reset()
       this.waveManager.start()
       this.lastWaveNumber = this.waveManager.currentWaveNumber
+      // Empieza limpio de verdad, sin fiarlo a que quien llame haya
+      // pasado antes por `over` (que es quien limpia estos pools al
+      // salir de `game`, más abajo): una partida nueva no hereda
+      // proyectiles enemigos ni explosiones de la anterior.
+      this.playerProjectiles?.forEach((p) => p.kill())
+      this.enemyProjectiles?.forEach((p) => p.kill())
+      this.explosions?.forEach((e) => e.kill())
       this.updateStats()
     } else {
       // Fuera de partida nada se actualiza ni se dibuja (ver update/
@@ -307,6 +314,11 @@ export class Engine {
           this.spawnExplosion(boss.centerX, boss.centerY)
           this.addScore(BOSS.score)
           this.boss = null
+          // Sin esto la partida no terminaba nunca: WaveManager ya
+          // está `cleared` (no quedan más oleadas) y sin jefe no hay
+          // nada más que pueda matar al jugador, así que quedaba
+          // volando en un nivel vacío para siempre.
+          this.completeRun(true)
         }
       })
     }
@@ -336,14 +348,24 @@ export class Engine {
     this.spawnExplosion(this.player.centerX, this.player.centerY)
     this.updateStats()
 
-    if (this.lives <= 0 && !this.gameOverFired) {
-      this.gameOverFired = true
-      this.hooks.onGameOver?.({
-        score: this.score,
-        wave: this.waveManager.currentWaveNumber,
-        durationMs: Math.round(performance.now() - this.runStartedAt),
-      })
-    }
+    if (this.lives <= 0) this.completeRun(false)
+  }
+
+  /**
+   * Único punto de salida de una partida, gane o pierda quien juega.
+   * `gameOverFired` evita que dos causas de fin de partida en el
+   * mismo fotograma (por ejemplo, morir justo al matar al jefe)
+   * disparen `onGameOver` dos veces.
+   */
+  completeRun(victory) {
+    if (this.gameOverFired) return
+    this.gameOverFired = true
+    this.hooks.onGameOver?.({
+      score: this.score,
+      wave: this.waveManager.currentWaveNumber,
+      durationMs: Math.round(performance.now() - this.runStartedAt),
+      victory,
+    })
   }
 
   draw() {
