@@ -14,7 +14,7 @@ const props = defineProps({
   phase: { type: String, required: true },
 })
 
-const emit = defineEmits(['ready', 'gameover'])
+const emit = defineEmits(['ready', 'gameover', 'stats'])
 
 const canvasRef = ref(null)
 let engine = null
@@ -23,6 +23,7 @@ onMounted(async () => {
   if (!canvasRef.value) return
   engine = new Engine(canvasRef.value, {
     onGameOver: (summary) => emit('gameover', summary),
+    onStatsChange: (stats) => emit('stats', stats),
   })
 
   try {

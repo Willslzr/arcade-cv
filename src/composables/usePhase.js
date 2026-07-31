@@ -24,18 +24,23 @@ export const PHASE = Object.freeze({
   OVER:   'over',
 })
 
-/** Transiciones legales. Cualquier otra se rechaza y se avisa. */
+/**
+ * Transiciones legales. Cualquier otra se rechaza y se avisa.
+ * OVER→GAME es el atajo de "jugar de nuevo" (tecla R): a diferencia
+ * de IDLE→GLITCH, no repite la cinemática de corrupción — esa
+ * historia sólo se cuenta la primera vez.
+ */
 const TRANSITIONS = {
   [PHASE.IDLE]:   [PHASE.GLITCH],
   [PHASE.GLITCH]: [PHASE.GAME, PHASE.IDLE],
   [PHASE.GAME]:   [PHASE.OVER, PHASE.IDLE],
-  [PHASE.OVER]:   [PHASE.IDLE, PHASE.GLITCH],
+  [PHASE.OVER]:   [PHASE.IDLE, PHASE.GLITCH, PHASE.GAME],
 }
 
 /** Estado a nivel de módulo: una sola instancia para toda la app. */
 const phase = ref(PHASE.IDLE)
 const countdown = ref(0)
-const lastRun = ref(null) // { score, waves, durationMs }
+const lastRun = ref(null) // { score, wave, durationMs }
 
 let countdownTimer = null
 
@@ -101,6 +106,13 @@ function reset() {
   go(PHASE.IDLE)
 }
 
+/** Jugar de nuevo desde la pantalla de resultados (tecla R). */
+function restart() {
+  if (phase.value !== PHASE.OVER) return
+  lastRun.value = null
+  go(PHASE.GAME)
+}
+
 export function usePhase() {
   return {
     phase: readonly(phase),
@@ -118,5 +130,6 @@ export function usePhase() {
     abort,
     endRun,
     reset,
+    restart,
   }
 }

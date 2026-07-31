@@ -47,6 +47,7 @@ export const BOSS = Object.freeze({
   speed: 130,
   entrySpeed: 90,           // px/s durante la cinemática de entrada
   phaseHpRatios: [1, 0.66, 0.33], // cambios de patrón por vida restante
+  fireChancePerSecond: 0.6, // más alto que ENEMY: es un único tirador, no una formación
 })
 
 export const EXPLOSION = Object.freeze({

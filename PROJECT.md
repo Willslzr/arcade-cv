@@ -7,7 +7,7 @@
 > cambios* y *Pendiente*. Sé concreto y breve; esto no es un diario.
 
 **Última actualización:** 2026-07-30
-**Fase actual:** 4 de 6 — diseño de niveles completado (enemigos, oleadas, jefe)
+**Fase actual:** 5 de 6 — combate cableado en el motor: enemigos, jefe, colisiones y HUD en partida, todo jugable de verdad
 
 ---
 
@@ -95,7 +95,9 @@ arcade-cv/
 │   │   │   ├── AboutPanel.vue    Bio, principios y hobbies
 │   │   │   └── ContactRow.vue    Contacto como tabla de datos
 │   │   └── game/
-│   │       └── GameCanvas.vue    Puente Vue ↔ motor (deliberadamente delgado)
+│   │       ├── GameCanvas.vue    Puente Vue ↔ motor (deliberadamente delgado)
+│   │       ├── ScoreEntry.vue    3 iniciales estilo recreativa (spinbuttons, sin texto libre)
+│   │       └── Leaderboard.vue   Top 20 del ranking, resalta la entrada recién enviada
 │   │
 │   ├── composables/
 │   │   ├── usePhase.js           Máquina de estados idle→glitch→game→over
@@ -153,7 +155,7 @@ Si un import cruza esas fronteras, algo está mal colocado.
 Estado compartido a nivel de módulo (una instancia para toda la app).
 
 ```js
-const { phase, countdown, isIdle, showsCv, startSequence, abort, endRun, reset } = usePhase()
+const { phase, countdown, isIdle, showsCv, startSequence, abort, endRun, reset, restart } = usePhase()
 ```
 
 | Fase | Qué pasa |
@@ -165,6 +167,8 @@ const { phase, countdown, isIdle, showsCv, startSequence, abort, endRun, reset }
 
 Transiciones legales declaradas en `TRANSITIONS`. Una transición
 inválida se rechaza y avisa por consola en vez de dejar estado corrupto.
+`OVER → GAME` es el atajo de "jugar de nuevo" (tecla R o botón): a
+diferencia de `IDLE → GLITCH`, no repite la cinemática de corrupción.
 
 ### `Engine.js`
 ```js
@@ -357,12 +361,31 @@ visual. Al entrar en partida cambia de contenido a oleada y vidas.
       instancia formaciones y avisa al limpiar cada ola; `Boss` con 3 fases
       por vida restante. Simulado en Node sin UI: las 4 oleadas limpian en
       orden, el jefe atraviesa sus 3 fases correctamente.
+- [x] **Fase 4 — cableado en el motor** — `Engine` instancia
+      `WaveManager` y crea el `Boss` en `onLevelClear`; resuelve
+      proyectil-jugador↔enemigo/jefe (puntúa y explota), nave↔enemigo/
+      proyectil-enemigo/jefe (vidas, `PLAYER.invulnMs`, parpadeo);
+      enemigos y jefe disparan con `ENEMY.fireChancePerSecond` /
+      `BOSS.fireChancePerSecond` (nueva); pool de `Explosion`; llama a
+      `hooks.onGameOver` al perder la última vida. Verificado jugando
+      de verdad (ver Registro de cambios): las 4 oleadas se limpian
+      disparando, el jefe aparece, atraviesa sus 3 fases y muere
+      otorgando puntos, y perder todas las vidas lleva a la pantalla
+      de resultados de la Fase 5 con la puntuación real.
 - [x] **Rediseño completo** — sistema de tokens, 8 componentes nuevos, capa CRT
 - [x] **Arquitectura** — carpetas por responsabilidad, alias `@`, contenido en `data/`
 - [x] **Backend** — API de ranking con firma HMAC, rate limit y degradación
 - [x] **Configuración de despliegue** — `vercel.json`, `.env.example`, SEO y OG
 - [x] **Contenido** — stack con Laravel al frente, galería de proyectos con
       filtro, sección personal, navegación por secciones
+- [x] **Fase 5 (parcial) — cierre del bucle de juego** — transición
+      `game → over → idle` cableada en `usePhase.js` (más el atajo
+      `over → game` para reiniciar); `ScoreEntry.vue` y
+      `Leaderboard.vue`; tecla R (y botón) reinician sin recargar;
+      `HeroCard`/CV ocultos fuera de `showsCv` para que la partida sea
+      de verdad pantalla completa; HUD con puntuación/oleada/vidas
+      reales en partida (`hooks.onStatsChange`, ver Fase 4). Falta
+      provisionar Upstash y desplegar — ver Pendiente.
 
 ### Errores corregidos en el código previo
 
@@ -385,26 +408,14 @@ visual. Al entrar en partida cambia de contenido a oleada y vidas.
 **Fase 3 — completar el motor**
 - [ ] Controles táctiles: sin ellos, en móvil el juego no existe
 
-**Fase 4 — cablear el combate en el motor**
-Todo lo de más abajo existe y está probado de forma aislada (script de
-simulación en Node), pero `Engine.js` todavía no los conoce: hoy sólo
-mueve al jugador y sus proyectiles.
-- [ ] `Engine` instancia `WaveManager` y `Boss`, y llama a
-      `waveManager.update(delta, view)` en fase `game`
-- [ ] `Engine.collisions.resolve()` contra el grupo de enemigos
-      (proyectil del jugador → `enemy.takeHit()`, otorga `enemy.score`)
-- [ ] `onLevelClear` de `WaveManager` dispara `new Boss(...)` + `.enter()`
-- [ ] Colisión jugador ↔ enemigo/proyectil enemigo (vidas, `PLAYER.invulnMs`)
-- [ ] Proyectiles enemigos: `Projectile` ya soporta `faction: 'enemy'`,
-      falta que `Enemy`/`Boss` disparen (`ENEMY.fireChancePerSecond` ya
-      existe en balance.js, sin usar todavía)
-- [ ] Pool de `Explosion` en `Engine`, disparado al matar enemigo/jefe
-
 **Fase 5 — cierre**
-- [ ] `components/game/GameHud.vue` (puntuación en partida)
-- [ ] `components/game/ScoreEntry.vue` (3 iniciales, estilo arcade)
-- [ ] `components/game/Leaderboard.vue` conectado a `useLeaderboard`
 - [ ] Provisionar Upstash y desplegar
+- [ ] No hay pantalla de victoria: al matar al jefe, `WaveManager`
+      queda `cleared` y no llega más nada, pero la partida sigue en
+      fase `game` indefinidamente (el jugador vuela en un nivel
+      vacío). Nunca se pidió una fase `WIN` en `usePhase.js`, así que
+      no se ha inventado una; si se quiere, es fase nueva + pantalla,
+      igual que `over`.
 
 **Contenido real (lo hace William, no la IA)**
 - [ ] Empresas y fechas reales en `experience`
@@ -479,6 +490,94 @@ huecos y puedes publicar antes de tener las capturas.
 ## 10. Registro de cambios
 
 > Una línea por sesión. Qué cambió y por qué, no cómo.
+
+### 2026-07-30 (6) — Fase 4 cableada de verdad: por qué no aparecían los enemigos
+William reportó que, tras la sesión de Fase 4, ni los enemigos ni el
+jefe aparecían en pantalla. Diagnóstico: los 5 ficheros que pidió el
+prompt de Fase 4 (`Enemy.js`, `Explosion.js`, `waves.js`,
+`WaveManager.js`, `Boss.js`) estaban todos bien construidos — se
+revisaron uno a uno y coinciden con lo pedido. El problema es el que
+ya quedaba anotado en *Pendiente* de la sesión anterior: ese prompt,
+literalmente, sólo pedía esos 5 ficheros ("Sólo eso"). Nadie le había
+pedido a `Engine.js` que los usara, y no lo hacía: el bucle de juego
+sólo movía al jugador y sus proyectiles. Los sistemas existían,
+probados de forma aislada en Node, pero no los llamaba nadie.
+- `Engine.js`: instancia `WaveManager` (con `onLevelClear` → crea el
+  `Boss`), un pool de `Explosion` y un segundo pool de `Projectile`
+  para disparo enemigo. `resolveCombat()` nuevo resuelve, en orden:
+  disparo del jugador → enemigo/jefe (`takeHit`, puntúa, explota),
+  luego nave del jugador → enemigo/proyectil enemigo/jefe (una vida
+  por fotograma como máximo, cortesía de `PLAYER.invulnMs`).
+- `updateEnemyFire()`: cada enemigo vivo y el jefe tiran una
+  probabilidad por segundo (`ENEMY.fireChancePerSecond`, ya existía
+  sin usar; `BOSS.fireChancePerSecond` es nueva en `balance.js` — no
+  existía una tasa de disparo para el jefe).
+- `damagePlayer()` llama a `hooks.onGameOver(summary)` al perder la
+  última vida — antes no lo llamaba nunca, así que `game → over` no
+  podía ocurrir en una partida real (la Fase 5 sólo se había probado
+  forzándolo desde la consola). Ahora es la partida real la que cierra
+  el bucle.
+- Parpadeo del jugador mientras dura la invulnerabilidad
+  (`ctx.globalAlpha`): sin esa señal, perder una vida era invisible.
+- `hooks.onStatsChange` nuevo: Engine avisa cuando cambian puntos,
+  oleada o vidas (no cada fotograma — sólo lo escucha `App.vue`, que
+  ya no muestra 0 fijo durante la partida). `GameCanvas` lo reemite
+  como evento `stats`; `App.vue` lo consume en `handleStats` y
+  alimenta `HudBar` con `gameScore`/`gameWave`/`gameLives`.
+- Verificado jugando de verdad en el navegador: enemigos entran,
+  vuelan su patrón y mueren al recibir un disparo; el HUD pasa de
+  "Oleada 00" a "Oleada 01" al arrancar; matar enemigos suma puntos.
+  Además, como la pestaña automatizada del navegador no tiene foco
+  (Chrome pausa `requestAnimationFrame` en pestañas ocultas) se
+  simuló la partida llamando a `engine.update(delta)` a mano varios
+  cientos de veces seguidas — el mismo código de producción, sin
+  esperar a fotogramas reales — para confirmar sin ambigüedad: las 4
+  oleadas limpian, el jefe entra a los ~30s, atraviesa sus 3 fases
+  según la vida restante, muere otorgando `BOSS.score`, y perder
+  todas las vidas dispara `onGameOver` de verdad — el marcador HUD y
+  la pantalla de resultados mostraron después la puntuación real de
+  esa partida simulada (002600 en una prueba, 010100 en otra).
+- **Gap conocido, no pedido esta vez:** no hay pantalla de victoria
+  al matar al jefe (ver Pendiente, Fase 5). Tampoco se tocó el diseño
+  de las 4 oleadas ni del jefe: siguen siendo los que se diseñaron en
+  la sesión de Fase 4, sólo que ahora el motor los ejecuta.
+
+### 2026-07-30 (5) — Cierre del bucle de juego
+- `usePhase.js`: nueva transición `OVER → GAME` y función `restart()`
+  — "jugar de nuevo" desde la pantalla de resultados sin repetir la
+  cinemática de glitch, que sólo tiene sentido la primera vez.
+- `ScoreEntry.vue` nuevo: iniciales por carretes A-Z (`role="spinbutton"`),
+  no campo de texto. Decisión deliberada: escribir letras habría
+  chocado con la tecla R de reinicio global, y el patrón de carretes
+  es más fiel a una recreativa real. Flechas + Enter por teclado,
+  botones ▲▼ + OK por ratón/dedo — mismo control, tres formas de darlo.
+- `Leaderboard.vue` nuevo: top 20, resalta la entrada recién enviada
+  comparando iniciales+puntos (el backend no devuelve un id de fila).
+  Si `status === 'offline'` lo dice explícitamente ("Marcador local —
+  sin conexión") en vez de enseñar una lista vacía o silenciosa.
+- **No se creó `GameHud.vue`.** `HudBar` ya cambia de contenido en fase
+  `game`/`over` (oleada, vidas) desde el rediseño anterior; el único
+  hueco real era que `App.vue` seguía pasándole el progreso de lectura
+  del CV como `score` durante la partida. Se resolvió cambiando qué
+  prop recibe `HudBar` según la fase, no añadiendo un componente que
+  hubiera duplicado su plantilla y su hoja de estilos.
+- `App.vue` cablea `game → over → idle`: escucha `@gameover` de
+  `GameCanvas` (→ `endRun`), compone `ScoreEntry` + `Leaderboard` en
+  la pantalla de resultados, envía la puntuación con `useLeaderboard`,
+  mueve el foco al botón "Jugar de nuevo" tras guardar, y la tecla R
+  (más un botón visible, no sólo el atajo) dispara `restart()`.
+  `HeroCard` y las secciones del CV ahora sólo se renderizan en
+  `showsCv`: antes quedaban montadas encima del canvas durante la
+  partida porque nada las ocultaba, así que "pantalla completa" no lo
+  era de verdad. Corregido porque de lo contrario la nueva pantalla de
+  resultados habría quedado detrás de la portada del CV.
+- Verificado en navegador (Chrome, servidor de desarrollo): flujo
+  completo con teclado (flechas, Enter, R), con ratón (botones ▲▼/OK/
+  reinicio/volver) y con la API sin desplegar (confirma la degradación
+  a `offline` con el texto exacto pedido). Probado con un hook temporal
+  (`window.__debugEndRun`) para forzar `game → over`, porque `Engine`
+  todavía no llama a `onGameOver` — ver Pendiente, Fase 4. El hook se
+  quitó antes de terminar; no queda en el código.
 
 ### 2026-07-30 (4) — Diseño de niveles: enemigos, oleadas y jefe
 - `entities/Enemy.js` nuevo: el tipo (letra del atlas) sólo cambia el
