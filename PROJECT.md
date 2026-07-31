@@ -7,7 +7,7 @@
 > cambios* y *Pendiente*. Sé concreto y breve; esto no es un diario.
 
 **Última actualización:** 2026-07-31
-**Fase actual:** 5 de 6 — jugable de verdad en escritorio y en móvil (controles táctiles añadidos)
+**Fase actual:** 5 de 6 — contenido real desde el CV, stack en 4 columnas, y CV bilingüe ES/EN. Las 3 fases de este pedido están cerradas.
 
 ---
 
@@ -60,7 +60,8 @@ arcade-cv/
 ├── api/                          Funciones serverless (Vercel, Node 22)
 │   ├── _lib/
 │   │   ├── redis.js              Cliente Upstash por REST + claves
-│   │   └── guard.js              Validación, HMAC de partidas, rate limit
+│   │   ├── guard.js              Validación, HMAC de partidas, rate limit
+│   │   └── guard.test.js         Vitest: firma, iniciales, límites de partida
 │   └── scores/
 │       ├── index.js              GET top 20 · POST registrar puntuación
 │       └── start.js              POST abrir partida → runId firmado
@@ -69,30 +70,33 @@ arcade-cv/
 │   ├── assets/atlas.png          Texture atlas 128×128
 │   ├── img/avatar.jpeg           Foto de perfil
 │   ├── img/pixel-avatar.jpeg     Versión pixel art (sin usar aún)
+│   ├── og.png                    1200×630, generado — ver §10 (2026-07-31)
 │   └── favicon.svg               Nave del jugador en SVG
 │
 ├── src/
 │   ├── main.js                   Punto de entrada; orden de los CSS
 │   ├── App.vue                   Composición y cableado de la máquina de estados
 │   │
-│   ├── assets/styles/
-│   │   ├── tokens.css            ÚNICO sitio con valores de color/tipo/espaciado
-│   │   ├── base.css              Reset, tipografía global, utilidades, a11y
-│   │   └── crt.css               Capa de vidrio: scanlines, viñeta, barrido
+│   ├── assets/
+│   │   ├── icons/techIcons.js    Trazados SVG (Simple Icons, CC0) del inventario de stack
+│   │   └── styles/
+│   │       ├── tokens.css        ÚNICO sitio con valores de color/tipo/espaciado
+│   │       ├── base.css          Reset, tipografía global, utilidades, a11y
+│   │       └── crt.css           Capa de vidrio: scanlines, viñeta, barrido
 │   │
 │   ├── components/
 │   │   ├── layout/
-│   │   │   ├── HudBar.vue        Marcador fijo superior (elemento firma)
+│   │   │   ├── HudBar.vue        Marcador fijo superior (elemento firma). Siempre en español, ver §11.
 │   │   │   ├── CrtOverlay.vue    Overlay del monitor, sin eventos
-│   │   │   └── StageSection.vue  Envoltorio de sección numerada
+│   │   │   ├── StageSection.vue  Envoltorio de sección numerada
 │   │   │   ├── StageNav.vue      Selector de sección pegajoso (anclas, no pestañas)
+│   │   │   └── LanguageToggle.vue Botón ES/EN, sólo visible con el CV a la vista
 │   │   ├── cv/
 │   │   │   ├── HeroCard.vue      Portada + avatar-botón que dispara el juego
-│   │   │   ├── StackStrip.vue    Tira de stack principal, sobre el pliegue
-│   │   │   ├── StackGrid.vue     Stack detallado como barras de EXP
+│   │   │   ├── StackInventory.vue Stack principal: 4 columnas con icono+barra+nota (única vista de stack)
 │   │   │   ├── ProjectGallery.vue Galería de proyectos con portada y filtro
 │   │   │   ├── TimelineList.vue  Experiencia como línea temporal
-│   │   │   ├── AboutPanel.vue    Bio, principios y hobbies
+│   │   │   ├── AboutPanel.vue    Bio, formación, principios y hobbies
 │   │   │   └── ContactRow.vue    Contacto como tabla de datos
 │   │   └── game/
 │   │       ├── GameCanvas.vue    Puente Vue ↔ motor (deliberadamente delgado)
@@ -104,13 +108,18 @@ arcade-cv/
 │   │   ├── usePhase.js           Máquina de estados idle→glitch→game→over
 │   │   ├── useGlitch.js          Adaptador Vue sobre GlitchEffect
 │   │   ├── useLeaderboard.js     Ranking: API con degradación a localStorage
-│   │   └── useReadProgress.js    Progreso de scroll → marcador del HUD
+│   │   ├── useReadProgress.js    Progreso de scroll → marcador del HUD
+│   │   └── useLocale.js          Idioma del CV + profile.js ya traducido (ver §11)
 │   │
 │   ├── data/
-│   │   └── profile.js            TODO el contenido del CV. Editar aquí.
+│   │   └── profile.js            TODO el contenido del CV, en español. Editar aquí.
+│   │
+│   ├── i18n/
+│   │   └── translations.js       Textos de interfaz y traducción de profile.js a inglés (ver §11)
 │   │
 │   ├── lib/
 │   │   ├── GlitchEffect.js       Algoritmo de corrupción de texto (JS puro)
+│   │   ├── GlitchEffect.test.js  Vitest: centrado, barrido direccional, isSettled
 │   │   └── storage.js            localStorage a prueba de excepciones
 │   │
 │   └── game/
@@ -283,7 +292,10 @@ sólo si el ángulo gaming es el argumento principal y el coste no importa.
 
 - [ ] Sustituir `TU-DOMINIO.com` en `index.html` (canonical, OG, JSON-LD)
 - [ ] Poner `PUBLIC_ORIGIN` con el dominio final
-- [ ] Generar `public/og.png` (1200×630)
+- [x] Generar `public/og.png` (1200×630) — hecho, pero lleva el
+      placeholder "arcade-cv.dev" en la esquina (mismo problema que
+      `TU-DOMINIO.com`): hay que regenerarlo o al menos editar ese
+      texto cuando se decida el dominio real.
 - [ ] Colocar `public/cv-william-salazar.pdf`
 - [ ] Rellenar empresas reales en `src/data/profile.js`
 - [ ] Rellenar usuarios reales de GitHub y LinkedIn
@@ -442,16 +454,34 @@ visual. Al entrar en partida cambia de contenido a oleada y vidas.
 - [ ] Provisionar Upstash y desplegar
 
 **Contenido real (lo hace William, no la IA)**
-- [ ] Empresas y fechas reales en `experience`
+- [x] Empresas y fechas reales en `experience` — las 4 entradas del CV
+      (LinkTic ×2, NerdCom, Shokworks), ver Registro de cambios (2026-07-31)
+- [x] LinkedIn real en `contact` (`in/salazar-william`)
+- [ ] GitHub real en `contact` — no aparece en el CV, sigue siendo
+      placeholder (`tu-usuario`)
 - [ ] Dos proyectos reales sustituyendo las plantillas
 - [ ] Capturas en `public/img/projects/`
-- [ ] Usuarios reales de GitHub y LinkedIn
-- [ ] Tercer hobby real
+- [ ] Tercer hobby real (`about.hobbies[2]` sigue diciendo "Cambia esto")
+
+**Pedido de William del 2026-07-31, completo en 3 fases**
+- [x] Contenido real desde el CV (Fase 1)
+- [x] Rediseño de "Stack principal" (Fase 2 y 2b)
+- [x] Sistema de idiomas ES/EN, alcance sólo CV (Fase 3) — ver §10
 
 **Calidad**
-- [ ] Tests de `GlitchEffect` y del guard de la API (Vitest)
-- [ ] Auditoría Lighthouse — objetivo ≥ 95 en las cuatro categorías
-- [ ] `public/og.png` y `public/cv-william-salazar.pdf`
+- [x] Tests de `GlitchEffect` y del guard de la API (Vitest) — 32/32 en verde
+- [ ] Auditoría Lighthouse — hecha, objetivo ≥ 95 NO alcanzado en las
+      cuatro (perf 90, a11y 96, best practices 96, seo 92). Hallazgos
+      reportados a William, decisión de qué corregir pendiente de él
+      — ver Registro de cambios (2026-07-31) para el detalle completo.
+- [ ] Imágenes sin CLS — auditado: las 2 únicas `<img>` del sitio ya
+      tenían `width`/`height` explícitos. Nada que corregir.
+- [ ] Recorrido completo con teclado — auditado (ver Registro de
+      cambios): funciona de punta a punta. Un rough edge encontrado y
+      sin corregir: "Volver al CV" deja el foco en `<body>` en vez de
+      un punto útil.
+- [x] `public/og.png` — generado (falta domino real, ver §6)
+- [ ] `public/cv-william-salazar.pdf`
 
 ---
 
@@ -462,16 +492,21 @@ orden en que un reclutador decide.**
 
 | # | Sección | Pregunta que responde |
 |---|---|---|
-| — | Portada + tira de stack | ¿Quién es y con qué trabaja? (sobre el pliegue) |
-| 01 | Stack | ¿Encaja con la vacante? |
-| 02 | Proyectos | ¿Sabe hacerlo de verdad? |
-| 03 | Experiencia | ¿Dónde lo ha hecho? |
-| 04 | Sobre mí | ¿Quiero trabajar con esta persona? |
-| 05 | Contacto | ¿Cómo le escribo? |
+| — | Portada + Stack principal | ¿Quién es y con qué trabaja? (sobre el pliegue) |
+| 01 | Proyectos | ¿Sabe hacerlo de verdad? |
+| 02 | Experiencia | ¿Dónde lo ha hecho? |
+| 03 | Sobre mí | ¿Quiero trabajar con esta persona? |
+| 04 | Contacto | ¿Cómo le escribo? |
 
 **Proyectos va antes que experiencia a propósito:** la prueba pesa más
 que el historial, sobre todo en perfiles que no tienen 15 años de
 recorrido.
+
+**El stack ya no tiene una segunda vista más abajo.** Hasta el
+2026-07-31 existía `StackGrid.vue` como sección "01 Stack" con barras
+de EXP, duplicando lo que ya mostraba "Stack principal" sobre el
+pliegue. Se eliminó (junto con `toolbelt`) porque una sola vista bien
+hecha vale más que dos que dicen lo mismo con distinto formato.
 
 ### Por qué no hay pestañas
 
@@ -511,9 +546,383 @@ huecos y puedes publicar antes de tener las capturas.
 
 ---
 
-## 10. Registro de cambios
+## 10. Idioma del CV (ES/EN)
+
+### Alcance: sólo el CV
+
+Identidad, stack, proyectos, experiencia, sobre mí, contacto y
+navegación. **El juego se queda en español siempre** — HUD, cuenta
+atrás, pantalla de resultados, iniciales, ranking. `HudBar.vue`,
+`GameCanvas.vue` y todo `components/game/` no importan nada de
+`useLocale.js` ni de `i18n/`, a propósito: si algún día hace falta
+traducir el juego, es una decisión nueva, no una consecuencia de que
+"ya había un sistema de idiomas".
+
+### Cómo está montado
+
+```
+src/data/profile.js          Contenido del CV, en español. Fuente única.
+src/i18n/translations.js     ui (texto de interfaz) + content (traducción
+                              de los campos de profile.js que son prosa)
+src/composables/useLocale.js Fusiona profile.js + content[locale] y
+                              expone t() para el texto de interfaz
+```
+
+`profile.js` sigue siendo la única fuente de datos — `translations.js`
+nunca lo sustituye, sólo aporta la versión en inglés de los campos que
+son prosa (biografía, notas del stack, el impacto de cada puesto...).
+Lo que **no** se traduce (nombres de empresas, tecnologías, años,
+enlaces, `contact`) sale de `profile.js` igual en los dos idiomas: son
+nombres propios o datos, no texto.
+
+La fusión en `useLocale.js` es por `id`/`label` estable, nunca por
+posición en el array — así reordenar `profile.js` no desincroniza una
+traducción a medio hacer.
+
+```js
+const { locale, toggleLocale, t, identity, stackColumns, experience,
+        projects, about, contact, glitchScript } = useLocale()
+
+t('hero.insertCoin')        // → texto de interfaz en el idioma activo
+t('projects.empty', tech)   // → si la clave es una función, se invoca con los argumentos
+identity.value.tagline      // → ya viene en el idioma activo (es un computed)
+```
+
+Cada componente de `components/cv/` que tiene texto propio en la
+plantilla (no proveniente de `profile.js`) llama a `useLocale()`
+directamente para su `t()` — no hay prop-drilling de traducciones
+desde `App.vue`. `App.vue` sí centraliza los datos localizados
+(`identity`, `stackColumns`...) porque ya los pasaba como props antes
+de que existiera i18n; ese reparto no cambió.
+
+### Persistencia y accesibilidad
+
+El idioma se guarda en `localStorage` (`STORAGE_KEYS.LOCALE`) y
+`document.documentElement.lang` se actualiza en cada cambio, para que
+un lector de pantalla pronuncie el contenido en el idioma correcto.
+
+### Añadir una tercera categoría de contenido traducible
+
+Si `profile.js` gana un campo de prosa nuevo que haga falta traducir:
+1. Añade la traducción en `content.en` de `translations.js`, indexada
+   igual que el dato original (por `id`, nunca por posición).
+2. Añade la fusión correspondiente en `useLocale.js` (un `computed`
+   más, siguiendo el patrón de `localizedExperience` o
+   `localizedProjects`).
+3. `content.es` se queda vacío para ese campo — `profile.js` ya está
+   en español, no hace falta duplicar el dato.
+
+---
+
+## 11. Registro de cambios
 
 > Una línea por sesión. Qué cambió y por qué, no cómo.
+
+### 2026-07-31 (7) — CV bilingüe ES/EN (Fase 3 de 3, cierra el pedido)
+- **`src/i18n/translations.js`** nuevo: `ui` (texto de interfaz que
+  vivía escrito a mano en las plantillas — etiquetas, pistas de
+  sección, estados vacíos) y `content` (traducción al inglés de los
+  campos de `profile.js` que son prosa, indexada por `id`/`label`
+  estable, nunca por posición).
+- **`src/composables/useLocale.js`** nuevo: estado de módulo (mismo
+  patrón que `usePhase.js`), persistido en `localStorage`. Expone
+  `t(path, ...args)` para texto de interfaz (invoca la función si la
+  clave la devuelve, para los textos con variables) y
+  `identity/stackColumns/experience/projects/about/glitchScript` ya
+  fusionados con la traducción activa. `contact` se reexporta tal
+  cual: son nombres propios y enlaces, no hay nada que traducir.
+  Actualiza `document.documentElement.lang` en cada cambio.
+- **`LanguageToggle.vue`** nuevo: el texto del botón es el idioma AL
+  QUE cambia ("English" estando en español), no el actual — es una
+  instrucción, no una etiqueta de estado que haya que interpretar.
+  Sólo visible con `showsCv && !isGlitch`, igual que el resto del CV;
+  desaparece en cuanto empieza la partida.
+- **Alcance respetado tal como se decidió antes de empezar:** el juego
+  no sabe que esto existe. `HudBar.vue` y `components/game/` no
+  importan nada de `useLocale.js`. Verificado en el navegador con
+  `locale = 'en'` activo: el HUD sigue mostrando "Leído" en español.
+- Cada componente de `components/cv/` con texto propio en la
+  plantilla (`HeroCard`, `ProjectGallery`, `AboutPanel`, `ContactRow`,
+  `StageNav`, `StackInventory`) llama a `useLocale()` directamente
+  para su `t()` — no hay traducciones pasadas por props desde
+  `App.vue`.
+- **Bug encontrado verificando en el navegador, corregido antes de
+  cerrar:** el campo `to: 'Actualidad'` del puesto vigente en
+  `experience` no tenía traducción — en inglés se veía "Actualidad"
+  suelto en medio de fechas en inglés. Añadido `to: 'Present'` al
+  override de esa entrada en `translations.js`.
+- Verificado a fondo en el navegador: cambio de idioma con las 4
+  secciones completas (Proyectos, Experiencia, Sobre mí, Contacto),
+  el stack con sus notas traducidas, recarga de página con el idioma
+  persistido, vuelta a español sin residuos, y el juego arrancado con
+  `locale = 'en'` sin que el HUD cambiara una letra. Build limpio,
+  32/32 tests en verde (sin tests nuevos: no se pidieron para esta
+  fase, siguiendo el alcance acordado en la sesión de tests).
+
+### 2026-07-31 (6) — Vuelta atrás sobre la mascota: William la vio y no funcionó
+Feedback directo tras ver el resultado de (5): "el NPC se ve horrible".
+Se quita sin discusión — es su criterio visual, no un error técnico.
+- Mascota (`BOT_PIXELS`, tablet, brazos, popup de hover) eliminada por
+  completo de `StackInventory.vue`. Las fichas (icono + barra + nota)
+  se quedan igual — es la parte que sí funcionaba.
+- La pestaña "Inventario" también fuera; las 4 columnas ahora ocupan
+  todo el ancho de la ventana en vez de compartirlo con la mascota.
+- `Miscellaneous` recortado de 10 a 4 tecnologías (Git, Docker, Azure,
+  Jira) — fuera Scrum, VS Code, Figma, Postman, Linux, Vite. Sus
+  iconos correspondientes se borraron de `techIcons.js` (sin dejar
+  trazados sin usar).
+- **La sección "01 Stack" de más abajo (`StackGrid.vue`, barras EXP)
+  se elimina entera**: era la misma información que "Stack principal"
+  ya cubre arriba, en un formato distinto — William señaló la
+  redundancia directamente. `stack` y `toolbelt` salen de `profile.js`
+  (ya no los usa nadie). `StageNav` pasa a 4 entradas
+  (Proyectos/Experiencia/Sobre mí/Contacto) y las `StageSection`
+  restantes se renumeraron 1-4. El enlace "Saltar al contenido" ahora
+  apunta a `#stage-proyectos` (antes `#stage-stack`, que ya no existe).
+- **Lección para la próxima vez que se proponga un personaje o
+  ilustración nueva:** enseñar una captura pequeña o describir la
+  idea antes de implementarla entera, en vez de construirla completa
+  y descubrir después que no convence. Esta mascota costó dos rondas
+  de ajuste de contraste/silueta y aun así no funcionó — el coste de
+  media hora de implementación se podría haber evitado con una
+  vista previa más barata.
+- Build limpio, 32/32 tests en verde. `StackGrid.vue` y
+  `StackStrip.vue` (de la Fase 2) quedan ambos borrados del repo.
+
+### 2026-07-31 (5) — Inventario del stack: iconos reales, barras y hover (Fase 2b)
+William trajo una imagen de referencia (un archivista alienígena con
+tablet, fichas con icono+barra+nota) y pidió: (1) usarla para la
+mascota y el aspecto de las fichas, (2) que al pasar el ratón por una
+tecnología la mascota "presione un botón" y salga el icono de esa
+tecnología junto a ella, (3) los títulos de columna ya eran los que se
+pidieron (no había que tocarlos).
+
+- **Aviso de estilo, no bloqueante:** la imagen de referencia es una
+  ilustración pintada con esquinas redondeadas, sombras suaves y
+  degradados — choca de frente con las reglas ya escritas en este
+  documento ("radio 0 en todo", "sombras duras, nunca blur"). Se tomó
+  la referencia para el *contenido* (archivista con tablet, fichas con
+  icono real + barra + nota, el gesto de "pulsar botón") pero traducido
+  al lenguaje plano y de bordes duros que ya usa el resto del sitio, no
+  como una réplica literal del renderizado.
+- **Iconos reales por tecnología**: `src/assets/icons/techIcons.js`
+  nuevo, con los trazados `d` de 19 marcas (Simple Icons, CC0),
+  descargados directamente del CDN — no inventados a mano, para no
+  arriesgar un logo mal reproducido. Se pintan con la clase CSS del
+  icono (`fill: currentColor` vía clase, nunca un hex de marca), así
+  que el color sigue saliendo de `tokens.css`. `SQL` y `Scrum` no son
+  marcas con logo — llevan un monograma de texto en su lugar.
+- **`stackColumns` en `profile.js` ganó `level`, `note` e
+  `icon`/`iconText` por tecnología** (antes sólo tenía `label`/`lead`).
+  Los niveles y notas de las que ya estaban en `stack` (Laravel,
+  JavaScript, SQL, PostgreSQL, Vue.js, Node.js) se reutilizaron tal
+  cual; el resto son una autoevaluación razonable a partir del CV —
+  William puede ajustar los números si no le representan.
+- **Mascota rediseñada**: un archivista alienígena (cabeza grande,
+  ojos almendrados en fósforo, tablet en un brazo) en vez del robot
+  pequeño de la Fase 2 — pixel-art nuevo por bloques, sin imagen.
+  Costó dos iteraciones visuales: la primera versión usaba tonos
+  `panel`/`grid` para el cuerpo, casi indistinguibles entre sí y del
+  fondo `void`, así que se leía como una mancha con puntos de color
+  flotando en vez de una figura. Se corrigió pintando la silueta en
+  `--c-ink` (claro, con contraste real contra el fondo) y dejando los
+  tonos oscuros sólo para el cuello (separación) y los detalles.
+  También se corrigió un "codo" del brazo libre que quedaba como un
+  hueco en la silueta por no compartir una celda con la pieza anterior
+  — cada segmento de un miembro debe solaparse con el siguiente o el
+  hueco se lee como un mordisco, no como una articulación.
+- **Interacción de hover**: cada ficha de tecnología es enfocable
+  (`tabindex="0"`, funciona igual con ratón que con teclado). Al
+  entrar el puntero o el foco, la mascota cambia el brazo libre a una
+  pose de "pulsando" y aparece un icono flotante junto a la tablet con
+  el mismo glifo de la tecnología señalada — mismo gesto siempre, sólo
+  cambia qué icono sale. Transición desactivada bajo
+  `prefers-reduced-motion`.
+- Verificado en el navegador: iconos correctos por tecnología, barras
+  con el nivel de cada una, hover mostrando el icono flotante y el
+  cambio de pose del brazo. Build limpio, 32/32 tests en verde.
+
+### 2026-07-31 (4) — Stack principal rediseñado (Fase 2 de 3)
+- `StackStrip.vue` eliminado; `StackInventory.vue` nuevo lo sustituye
+  en el mismo punto (justo bajo la portada, sobre el pliegue).
+- `profile.js`: `primaryStack` (tira plana con `kind`) reemplazado por
+  `stackColumns`, un array de 4 categorías (`back`, `front`, `database`,
+  `misc`) cada una con su lista de tecnologías. De paso resuelve el
+  hallazgo anotado en la Fase 1: antes 4 tecnologías distintas
+  llevaban `lead: true` a la vez (Laravel, PostgreSQL, Scrum, Vue.js),
+  vaciando de sentido el destacado; ahora `lead` es como mucho una
+  por columna — el arma equipada de esa categoría, no una etiqueta
+  reciclada.
+- Categorización: Back Stack (Laravel, PHP, Node.js, Livewire) · Front
+  Stack (Vue.js, JavaScript, HTML, CSS) · Database (PostgreSQL, SQL,
+  Redis) · Miscellaneous (Git, Docker, Azure, Jira, Scrum, VS Code,
+  Figma, Postman, Linux, Vite). `stack` (las barras de EXP de la
+  sección 01) y `toolbelt` no se tocaron: siguen siendo la vista
+  detallada, esto es sólo el resumen de sobre el pliegue.
+- Mascota nueva en pixel-art: un robot compañero de 10×13 dibujado
+  como bloques de color (`<rect>` con clases que mapean a los tokens
+  existentes — cero hex nuevo), no una imagen. Deliberadamente
+  distinto de la nave del jugador y de los aliens del atlas — es un
+  personaje nuevo, no un asset reciclado del juego (así lo pidió
+  William al elegir entre las opciones).
+- Todo el conjunto —mascota + columnas— se enmarca como una ventana
+  de diálogo retro (pestaña de título "Inventario" + cuerpo), no como
+  una tarjeta suelta: es la idea de "personaje con su ficha de stats
+  abierta" que se pidió, no una lista con un dibujo al lado.
+- Referencia estructural: se repasó webreactiva.com (bloques
+  numerados, tarjetas densas de información, arquitectura por
+  tarjetas) — se confirma que ya es la referencia que sigue el resto
+  del sitio (ver §7). No se tomó ningún color ni valor de diseño de
+  ahí; todo sale de `tokens.css` existente.
+- Responsive: 1 columna en móvil, 2 a partir de 40rem, mascota +
+  4 columnas en fila a partir de 60rem. Verificado en el navegador de
+  escritorio; el chequeo específico en viewport móvil no se pudo
+  hacer con las herramientas de esta sesión (ver nota más abajo) —
+  las media queries replican el mismo patrón ya probado en
+  `StackGrid.vue`/`ProjectGallery.vue`.
+- Build limpio, 32/32 tests en verde.
+
+### 2026-07-31 (3) — Contenido real desde el CV (Fase 1 de 3)
+William pidió usar su CV real para completar experiencia y formación,
+más un rediseño del stack (4 columnas + mascota) y un sistema ES/EN.
+Por tamaño, se dividió en 3 fases; esta sesión cerró la Fase 1.
+
+- **`experience` reescrito con las 4 entradas reales del CV**, más
+  reciente primero: Analista QA Semisenior y Tester Junior en LinkTic,
+  Desarrollador Fullstack en NerdCom SRL, Backend Developer Trainee en
+  Shokworks, Inc. Cada `impact` sintetiza en una frase de resultado los
+  bullets sueltos del CV (el sitio no lista tareas, lista resultados —
+  ver la regla ya documentada en la sección de proyectos).
+- **Punto importante, resuelto con William antes de escribir nada:**
+  el CV original marca el rol de trainee en **Shokworks**, no en
+  NerdCom, y NerdCom Fullstack dura 3 meses (06/2024–09/2024), no un
+  año. El primer pedido fue reatribuir ese trainee a NerdCom y
+  extenderlo a 1 año — eso habría cambiado de qué empresa fue un
+  trabajo real, así que se preguntó antes de tocar el dato. Confirmado:
+  **se deja tal cual el CV**, sólo se ampliaron las tareas de cada rol
+  por separado.
+- **Formación** nueva en `about.education` (objeto único: `degree`,
+  `institution`, `year`) — el CV traía un dato que el sitio no
+  mostraba en ningún lado. Render nuevo en `AboutPanel.vue`: tarjeta
+  con acento ámbar entre la bio y los principios (el ámbar la separa
+  visualmente del acento fósforo de los principios, que va justo
+  debajo).
+- **`contact.linkedin`** actualizado al usuario real (`salazar-william`)
+  — venía en el propio CV, así que no hacía falta preguntar. GitHub
+  sigue siendo placeholder: no aparece en el CV.
+- Verificado: build limpio, 32/32 tests en verde, y revisión visual de
+  Experiencia y Sobre mí en el navegador.
+- **De paso, hallazgo sin tocar:** `primaryStack` tiene hoy 4 fichas
+  marcadas `lead: true` (Laravel, PostgreSQL, Scrum, Vue.js), cuando el
+  diseño original de `StackStrip.vue` asume una sola ficha destacada
+  ("no todas las tecnologías pesan lo mismo"). No se corrigió porque la
+  Fase 2 sustituye ese componente entero — se resuelve solo al
+  rediseñar, no antes.
+
+### 2026-07-31 (2) — Última pasada antes de desplegar
+Cinco encargos concretos; el diseño no se tocó en ninguno.
+
+**1. Tests (Vitest)** — `npm test`, 32/32 en verde.
+- `GlitchEffect.test.js`: centrado con margen, fotograma en t=0 sin
+  ruido, ancho de fotograma constante, resultado final centrado, y el
+  barrido direccional en sí (las posiciones de la izquierda resuelven
+  antes que las de la derecha — la razón de ser de la clase).
+  `Math.random` mockeado donde hacía falta determinismo.
+- `guard.test.js`: ida y vuelta de `issueRunId`/`verifyRunId`, firma
+  manipulada, id manipulado, entradas mal formadas, y el caso sin
+  `LEADERBOARD_SECRET` (con `vi.resetModules()` + query única para
+  forzar una evaluación fresca del módulo, porque `SECRET` se lee una
+  sola vez al cargar). `normalizeInitials` (incluida la sorpresa de
+  que trunca en vez de rechazar si sobran letras). `validateSubmission`
+  con los cuatro límites de `LIMITS` y el ritmo de puntos/segundo.
+  `clientIp` y `applyCors`.
+
+**2. Lighthouse móvil — reportado, NO corregido (pedido explícito)**
+Build de producción + `vite preview`, Lighthouse CLI, mobile, sin
+Upstash configurado (degrada a `offline`, esperado). Ninguna categoría
+llegó a 95:
+
+| Categoría | Puntuación |
+|---|---|
+| Rendimiento | 90 |
+| Accesibilidad | 96 |
+| Buenas prácticas | 96 |
+| SEO | 92 |
+
+Hallazgos, de mayor a menor impacto:
+- **Fuentes de Google Fonts vía `@import` en `base.css`** es la causa
+  raíz de casi todo lo de rendimiento: crea una cadena de peticiones
+  HTML→CSS→CSS de Google→woff2 en vez de que el navegador las
+  descubra desde el HTML. Estimado: ~830ms de ahorro posible
+  (`render-blocking-insight`, `network-dependency-tree-insight`,
+  `lcp-discovery-insight` señalan lo mismo).
+- **`public/img/avatar.jpeg` pesa mucho más de lo necesario**: 960×965
+  px reales para 176×176 (298×299 con densidad de píxel) en pantalla.
+  ~99 KB de los ~109 KB del fichero son de sobra (`image-delivery-insight`).
+- **LCP no es "discoverable" en el HTML inicial**: es una SPA sin SSR
+  (decisión ya tomada y documentada en §2), así que el navegador no
+  puede empezar a descargar el avatar hasta que Vue lo renderiza. Es
+  coherente con la arquitectura elegida, no un descuido — mencionarlo
+  porque es la explicación de por qué FCP/LCP rondan 2.7–3.0s pese a
+  que TBT es 0ms y CLS 0.012 (ambos excelentes).
+- **Contraste de `.u-label` dentro de `.hero__stats`**: axe mide 4.49:1
+  sobre `--c-panel`, no 4.5:1. El comentario de `tokens.css` dice que
+  `--c-ink-faint` está calibrado "justo por encima" del umbral AA —
+  la medición real cae justo por *debajo*. Un solo token, probablemente
+  un paso de luminosidad.
+- **`robots.txt` inválido, 57 errores**: no existe el fichero; el
+  servidor devuelve `index.html` para esa ruta y Lighthouse intenta
+  parsear HTML como robots.txt. Falta `public/robots.txt`, sin más.
+- **Un error de consola** (`errors-in-console`): el `502` de
+  `/api/scores` en este entorno de prueba porque no hay backend bajo
+  `vite preview`. En producción real pasará lo mismo *mientras Upstash
+  no esté provisionado* (pendiente ya trackeado en Fase 5) — no es un
+  hallazgo nuevo, es el mismo pendiente visto desde Lighthouse.
+- `mainthread-work-breakdown` (0.5) y un `forced-reflow-insight` de
+  ~193ms en el bundle principal: no identificado a qué línea
+  corresponde exactamente (haría falta mapear con sourcemaps); candidato
+  más probable es una lectura de layout (`getBoundingClientRect`) justo
+  después de una escritura al DOM en `Engine.resize()` o `StageNav`.
+
+Ninguno de estos se corrigió. Decisión de William pendiente sobre
+cuáles abordar.
+
+**3. Imágenes sin salto de layout — auditado, nada que corregir**
+Sólo hay 2 `<img>` en todo el sitio (`HeroCard.vue` y
+`ProjectGallery.vue`); ambas ya tenían `width`/`height` explícitos
+desde que se escribieron. `base.css` ya usa `max-width: 100%` sin
+romper el aspect-ratio porque los navegadores modernos lo calculan
+solos a partir de esos atributos.
+
+**4. Recorrido completo con teclado — auditado**
+La pestaña del navegador de pruebas está oculta
+(`document.hidden === true`) y Chrome no entrega Tab/Enter/Escape
+nativos a pestañas ocultas — sólo los `keydown` disparados por JS
+(`dispatchEvent`) llegan a los listeners de la app. Con eso:
+- Auditoría estructural: las 22 zonas interactivas del CV son
+  `<a href>`/`<button>` nativos en orden de DOM natural, sin
+  `tabindex` que rompa el orden — el foco por Tab funcionará en
+  cualquier navegador real sólo por ser HTML semántico correcto.
+  Enlace de salto presente y con el mecanismo correcto (fuera de
+  pantalla hasta `:focus`).
+  `:where(a, button, [tabindex]):focus-visible` en `base.css` cubre
+  todo el sitio con el mismo anillo ámbar.
+- Lógica propia verificada disparando eventos reales: Escape aborta
+  `glitch`→`idle`; al llegar a `over` el foco entra solo en la
+  primera letra; flechas mueven entre las 3 letras; Enter en la
+  última confirma y mueve el foco a "Jugar de nuevo".
+- **Rough edge encontrado, sin corregir:** "Volver al CV" deja el
+  foco en `<body>` (el botón se desmonta y el navegador no tiene
+  dónde más ponerlo). No es una trampa de foco, pero obliga a
+  tabular desde el principio otra vez.
+
+**5. `public/og.png` (1200×630) — generado**
+Página HTML aparte (fuera del repo) con los tokens reales del sitio
+—Silkscreen, fósforo con glow, HUD arriba, avatar con el mismo borde
+que `hero__avatar`, tiras de stack como `StackStrip`— servida en local
+y capturada con Chrome a resolución exacta. Usa el mismo placeholder
+de dominio que `index.html` ("arcade-cv.dev" en la esquina): falta
+regenerarlo o editarlo cuando el dominio real esté decidido.
 
 ### 2026-07-31 — Controles táctiles
 Sin esto el juego no existía en móvil, y la mitad de quien abre el

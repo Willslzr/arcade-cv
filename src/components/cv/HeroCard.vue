@@ -9,6 +9,9 @@
  * pantalla; la accesibilidad no se sacrifica por la puesta en escena.
  */
 import { computed } from 'vue'
+import { useLocale } from '../../composables/useLocale.js'
+
+const { t } = useLocale()
 
 const props = defineProps({
   identity:  { type: Object, required: true },
@@ -38,7 +41,7 @@ const roleText = computed(() =>
       class="hero__avatar"
       type="button"
       :disabled="phase !== 'idle'"
-      :aria-label="`Iniciar el juego. Avatar de ${identity.name}`"
+      :aria-label="t('hero.avatarAriaLabel', identity.name)"
       @click="emit('start')"
     >
       <img
@@ -51,7 +54,7 @@ const roleText = computed(() =>
       />
       <span v-if="!isGlitch" class="hero__cta" aria-hidden="true">
         <em class="hero__cta-arrow">▶</em>
-        Pulsa start
+        {{ t('hero.start') }}
       </span>
       <span v-else class="hero__count" aria-live="polite">{{ countdown }}</span>
     </button>
@@ -60,7 +63,7 @@ const roleText = computed(() =>
     <div class="hero__id">
       <p class="hero__eyebrow">
         <span class="hero__blink" aria-hidden="true">●</span>
-        Insert coin — 1 crédito
+        {{ t('hero.insertCoin') }}
       </p>
 
       <h1 class="hero__name" :class="{ 'crt-bleed': isGlitch, 'is-alert': isGlitch }">
@@ -71,16 +74,16 @@ const roleText = computed(() =>
 
       <dl v-if="!isGlitch" class="hero__stats">
         <div class="hero__stat">
-          <dt class="u-label">Nivel</dt>
+          <dt class="u-label">{{ t('hero.nivel') }}</dt>
           <dd class="hero__statval">{{ identity.level }}</dd>
         </div>
         <div class="hero__stat">
-          <dt class="u-label">Base</dt>
+          <dt class="u-label">{{ t('hero.base') }}</dt>
           <dd class="hero__statval hero__statval--sm">{{ identity.base }}</dd>
         </div>
         <div class="hero__stat">
-          <dt class="u-label">Clase</dt>
-          <dd class="hero__statval hero__statval--sm">Analista / Dev</dd>
+          <dt class="u-label">{{ t('hero.clase') }}</dt>
+          <dd class="hero__statval hero__statval--sm">{{ t('hero.claseValor') }}</dd>
         </div>
       </dl>
 

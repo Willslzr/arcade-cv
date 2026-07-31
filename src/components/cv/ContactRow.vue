@@ -4,10 +4,14 @@
  * Sin formulario: para un CV, un email visible convierte mejor que
  * un input, y elimina la necesidad de backend para este bloque.
  */
+import { useLocale } from '../../composables/useLocale.js'
+
 defineProps({
   items: { type: Array, required: true },
   cv:    { type: String, default: '' },
 })
+
+const { t } = useLocale()
 </script>
 
 <template>
@@ -20,7 +24,7 @@ defineProps({
     </ul>
 
     <a v-if="cv" :href="cv" class="contact__cta" download>
-      Descargar CV
+      {{ t('contact.downloadCv') }}
       <span class="contact__cta-icon" aria-hidden="true">▼</span>
     </a>
   </div>

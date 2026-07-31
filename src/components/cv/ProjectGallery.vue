@@ -15,10 +15,13 @@
  * huecos mientras preparas las capturas.
  */
 import { ref, computed } from 'vue'
+import { useLocale } from '../../composables/useLocale.js'
 
 const props = defineProps({
   items: { type: Array, required: true },
 })
+
+const { t } = useLocale()
 
 const activeFilter = ref('all')
 
@@ -67,7 +70,7 @@ function pattern(id) {
   <div class="gal">
 
     <!-- Filtro. Sólo aparece si hay más de una tecnología. -->
-    <div v-if="technologies.length > 1" class="gal__filter" role="group" aria-label="Filtrar proyectos por tecnología">
+    <div v-if="technologies.length > 1" class="gal__filter" role="group" :aria-label="t('projects.filterAriaLabel')">
       <button
         type="button"
         class="gal__pill"
@@ -75,7 +78,7 @@ function pattern(id) {
         :aria-pressed="activeFilter === 'all'"
         @click="activeFilter = 'all'"
       >
-        Todos <span class="gal__n">{{ items.length }}</span>
+        {{ t('projects.filterAll') }} <span class="gal__n">{{ items.length }}</span>
       </button>
 
       <button
@@ -103,7 +106,7 @@ function pattern(id) {
           <img
             v-if="project.cover"
             :src="project.cover"
-            :alt="`Captura de ${project.name}`"
+            :alt="t('projects.captureAlt', project.name)"
             class="card__img"
             loading="lazy"
             width="600"
@@ -135,9 +138,9 @@ function pattern(id) {
           <p class="card__summary">{{ project.summary }}</p>
 
           <dl class="card__facts">
-            <dt class="u-label">Problema</dt>
+            <dt class="u-label">{{ t('projects.problema') }}</dt>
             <dd class="card__fact">{{ project.problem }}</dd>
-            <dt class="u-label">Solución</dt>
+            <dt class="u-label">{{ t('projects.solucion') }}</dt>
             <dd class="card__fact">{{ project.detail }}</dd>
           </dl>
 
@@ -159,7 +162,7 @@ function pattern(id) {
     </ul>
 
     <p v-if="!visible.length" class="gal__empty">
-      Ningún proyecto usa {{ activeFilter }} todavía.
+      {{ t('projects.empty', activeFilter) }}
     </p>
   </div>
 </template>

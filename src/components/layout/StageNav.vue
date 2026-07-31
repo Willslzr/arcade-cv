@@ -13,10 +13,13 @@
  * fotogramas.
  */
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useLocale } from '../../composables/useLocale.js'
 
 const props = defineProps({
   stages: { type: Array, required: true }, // [{ id, label }]
 })
+
+const { t } = useLocale()
 
 const active = ref(props.stages[0]?.id ?? null)
 let observer = null
@@ -49,7 +52,7 @@ onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
-  <nav class="nav" aria-label="Secciones del CV">
+  <nav class="nav" :aria-label="t('nav.ariaLabel')">
     <ul class="nav__list">
       <li v-for="(stage, i) in stages" :key="stage.id">
         <a

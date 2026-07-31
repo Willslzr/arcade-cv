@@ -10,11 +10,16 @@
  * independientes que se leen de un vistazo; los hobbies no, porque
  * no hay orden entre ellos: van como ranuras de partida guardada.
  */
+import { useLocale } from '../../composables/useLocale.js'
+
 defineProps({
   bio:        { type: Array, required: true },
+  education:  { type: Object, default: null }, // { degree, institution, year }
   hobbies:    { type: Array, default: () => [] },
   principles: { type: Array, default: () => [] },
 })
+
+const { t } = useLocale()
 </script>
 
 <template>
@@ -23,6 +28,12 @@ defineProps({
     <!-- Columna 1: la voz -->
     <div class="about__prose">
       <p v-for="(para, i) in bio" :key="i" class="about__para">{{ para }}</p>
+
+      <div v-if="education" class="about__edu">
+        <p class="u-label about__edu-label">{{ t('about.formacion') }}</p>
+        <p class="about__edu-degree">{{ education.degree }}</p>
+        <p class="about__edu-meta">{{ education.institution }} · {{ education.year }}</p>
+      </div>
 
       <ul v-if="principles.length" class="about__creed">
         <li v-for="(line, i) in principles" :key="i" class="about__rule">
@@ -34,12 +45,12 @@ defineProps({
 
     <!-- Columna 2: ranuras de partida guardada -->
     <div v-if="hobbies.length" class="about__saves">
-      <p class="u-label about__saves-title">Fuera del trabajo</p>
+      <p class="u-label about__saves-title">{{ t('about.fueraDelTrabajo') }}</p>
 
       <ul class="about__slots">
         <li v-for="(hobby, i) in hobbies" :key="hobby.id" class="slot">
           <div class="slot__head">
-            <span class="slot__id">Slot {{ i + 1 }}</span>
+            <span class="slot__id">{{ t('about.slot', i + 1) }}</span>
             <span class="slot__dot" aria-hidden="true"></span>
           </div>
           <h3 class="slot__name">{{ hobby.label }}</h3>
@@ -63,6 +74,28 @@ defineProps({
   max-width: var(--w-prose);
   margin-bottom: var(--s-4);
   color: var(--c-ink);
+}
+
+/* Formación: mismo lenguaje que la ficha de contacto (etiqueta +
+   dato), con un acento ámbar para no confundirla con el phosphor
+   de los principios que viene justo debajo. */
+.about__edu {
+  margin: var(--s-5) 0;
+  padding: var(--s-4) var(--s-5);
+  border-inline-start: 2px solid var(--c-amber);
+  background: var(--c-panel);
+}
+
+.about__edu-label { margin-bottom: var(--s-1); }
+
+.about__edu-degree {
+  font-size: var(--t-md);
+  color: var(--c-ink);
+}
+
+.about__edu-meta {
+  font-size: var(--t-sm);
+  color: var(--c-ink-dim);
 }
 
 .about__creed {

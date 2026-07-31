@@ -7,19 +7,21 @@
  *   useGlitch       → el texto corrompido durante la intro
  *   useReadProgress → el marcador del HUD
  *   useLeaderboard  → ranking global con degradación a localStorage
+ *   useLocale       → idioma del CV y el contenido ya traducido
  *   GameCanvas      → todo lo que se dibuja a 60 fps
  *
  * App no calcula nada; sólo conecta.
  *
  * Orden de las secciones — es una decisión, no el orden en que se
  * escribieron. Un reclutador decide en este orden:
- *   01 Stack  → ¿encaja con la vacante?
- *   02 Proyectos → ¿sabe hacerlo de verdad?
- *   03 Experiencia → ¿dónde lo ha hecho?
- *   04 Sobre mí → ¿quiero trabajar con esta persona?
- *   05 Contacto → cómo le escribo
+ *   01 Proyectos → ¿sabe hacerlo de verdad?
+ *   02 Experiencia → ¿dónde lo ha hecho?
+ *   03 Sobre mí → ¿quiero trabajar con esta persona?
+ *   04 Contacto → cómo le escribo
  * Proyectos va antes que experiencia a propósito: la prueba pesa
- * más que el historial.
+ * más que el historial. El stack ya no tiene sección propia aquí
+ * abajo: "Stack principal", sobre el pliegue, es la única vista y
+ * cubre lo que antes duplicaba esta sección.
  */
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 
@@ -27,27 +29,23 @@ import { usePhase, PHASE } from './composables/usePhase.js'
 import { useGlitch } from './composables/useGlitch.js'
 import { useReadProgress } from './composables/useReadProgress.js'
 import { useLeaderboard } from './composables/useLeaderboard.js'
+import { useLocale } from './composables/useLocale.js'
 
 import CrtOverlay from './components/layout/CrtOverlay.vue'
 import HudBar from './components/layout/HudBar.vue'
 import StageNav from './components/layout/StageNav.vue'
 import StageSection from './components/layout/StageSection.vue'
+import LanguageToggle from './components/layout/LanguageToggle.vue'
 import GameCanvas from './components/game/GameCanvas.vue'
 import ScoreEntry from './components/game/ScoreEntry.vue'
 import Leaderboard from './components/game/Leaderboard.vue'
 
 import HeroCard from './components/cv/HeroCard.vue'
-import StackStrip from './components/cv/StackStrip.vue'
-import StackGrid from './components/cv/StackGrid.vue'
+import StackInventory from './components/cv/StackInventory.vue'
 import ProjectGallery from './components/cv/ProjectGallery.vue'
 import TimelineList from './components/cv/TimelineList.vue'
 import AboutPanel from './components/cv/AboutPanel.vue'
 import ContactRow from './components/cv/ContactRow.vue'
-
-import {
-  identity, primaryStack, stack, toolbelt,
-  projects, experience, about, contact, glitchScript,
-} from './data/profile.js'
 
 const {
   phase, countdown, isIdle, isGlitch, isOver, showsCv, lastRun,
@@ -55,6 +53,10 @@ const {
 } = usePhase()
 const { score, ratio } = useReadProgress()
 const { entries, status: lbStatus, best, load: loadScores, openRun, submit } = useLeaderboard()
+const {
+  locale, toggleLocale, t,
+  identity, stackColumns, experience, projects, about, contact, glitchScript,
+} = useLocale()
 
 const nameGlitch = useGlitch()
 const roleGlitch = useGlitch()
@@ -80,22 +82,22 @@ const gameScore = computed(() => liveStats.value.score)
 const gameWave  = computed(() => liveStats.value.wave)
 const gameLives = computed(() => liveStats.value.lives)
 
-/** Índice de secciones. Una sola lista alimenta la nav y el render. */
-const STAGES = [
-  { id: 'stage-stack',      label: 'Stack' },
-  { id: 'stage-proyectos',  label: 'Proyectos' },
-  { id: 'stage-experiencia',label: 'Experiencia' },
-  { id: 'stage-sobre-mi',   label: 'Sobre mí' },
-  { id: 'stage-contacto',   label: 'Contacto' },
-]
+/** Índice de secciones. Una sola lista alimenta la nav y el render.
+    Computada, no constante: los labels cambian con el idioma. */
+const STAGES = computed(() => [
+  { id: 'stage-proyectos',   label: t('nav.stages.proyectos') },
+  { id: 'stage-experiencia', label: t('nav.stages.experiencia') },
+  { id: 'stage-sobre-mi',    label: t('nav.stages.sobreMi') },
+  { id: 'stage-contacto',    label: t('nav.stages.contacto') },
+])
 
 function handleStart() {
   if (!isIdle.value) return
   // Se reserva la partida en el servidor mientras corre la cuenta
   // atrás: para cuando el jugador dispara, el runId ya está listo.
   openRun()
-  nameGlitch.run(glitchScript.nameFrom, glitchScript.nameTo)
-  roleGlitch.run(glitchScript.roleFrom, glitchScript.roleTo)
+  nameGlitch.run(glitchScript.value.nameFrom, glitchScript.value.nameTo)
+  roleGlitch.run(glitchScript.value.roleFrom, glitchScript.value.roleTo)
   startSequence(COUNTDOWN_SECONDS)
 }
 
@@ -188,7 +190,14 @@ const year = new Date().getFullYear()
 
   <!-- Capa 10: contenido -->
   <div class="shell">
-    <a href="#stage-stack" class="skip">Saltar al contenido</a>
+    <a href="#stage-proyectos" class="skip">{{ t('skip') }}</a>
+
+    <LanguageToggle
+      v-if="showsCv && !isGlitch"
+      :label="t('languageToggle.switchTo')"
+      :aria-label="t('languageToggle.ariaLabel')"
+      @toggle="toggleLocale"
+    />
 
     <main class="u-shell">
       <!-- Sólo existe fuera de la partida: en juego el canvas manda
@@ -205,50 +214,37 @@ const year = new Date().getFullYear()
 
       <template v-if="showsCv && !isGlitch">
         <!-- Lo primero que busca un reclutador, sobre el pliegue -->
-        <StackStrip :items="primaryStack" />
+        <StackInventory :columns="stackColumns" />
 
         <StageNav :stages="STAGES" />
 
         <StageSection
-          id="stage-stack"
-          :index="1"
-          title="Stack"
-          hint="Con qué trabajo y para qué. El nivel es autoevaluación honesta, no marketing."
-        >
-          <StackGrid :items="stack" />
-
-          <p class="tools">
-            <span class="u-label tools__key">También</span>
-            <span class="tools__list">{{ toolbelt.join(' · ') }}</span>
-          </p>
-        </StageSection>
-
-        <StageSection
           id="stage-proyectos"
-          :index="2"
-          title="Proyectos"
-          hint="Qué problema resolvía cada uno y cómo. Filtra por tecnología si buscas algo concreto."
+          :index="1"
+          :title="t('nav.stages.proyectos')"
+          :hint="t('hints.proyectos')"
         >
           <ProjectGallery :items="projects" />
         </StageSection>
 
         <StageSection
           id="stage-experiencia"
-          :index="3"
-          title="Experiencia"
-          hint="Cada puesto con el resultado que dejó, no con la lista de tareas."
+          :index="2"
+          :title="t('nav.stages.experiencia')"
+          :hint="t('hints.experiencia')"
         >
           <TimelineList :items="experience" />
         </StageSection>
 
         <StageSection
           id="stage-sobre-mi"
-          :index="4"
-          title="Sobre mí"
-          hint="Cómo trabajo y qué hago cuando no trabajo."
+          :index="3"
+          :title="t('nav.stages.sobreMi')"
+          :hint="t('hints.sobreMi')"
         >
           <AboutPanel
             :bio="about.bio"
+            :education="about.education"
             :hobbies="about.hobbies"
             :principles="about.principles"
           />
@@ -256,9 +252,9 @@ const year = new Date().getFullYear()
 
         <StageSection
           id="stage-contacto"
-          :index="5"
-          title="Contacto"
-          hint="Respondo en menos de 24 h."
+          :index="4"
+          :title="t('nav.stages.contacto')"
+          :hint="t('hints.contacto')"
         >
           <ContactRow :items="contact" :cv="identity.cv" />
         </StageSection>
@@ -306,10 +302,10 @@ const year = new Date().getFullYear()
 
     <footer v-if="showsCv && !isGlitch" class="foot u-shell">
       <p class="foot__line">
-        <span class="u-label">Build</span>
-        {{ year }} · Vue 3 + Canvas 2D, sin librerías de juego
+        <span class="u-label">{{ t('footer.build') }}</span>
+        {{ t('footer.line', year) }}
       </p>
-      <p class="foot__hint">Pulsa el avatar para jugar · Escape para volver</p>
+      <p class="foot__hint">{{ t('footer.hint') }}</p>
     </footer>
   </div>
 </template>
@@ -346,23 +342,6 @@ const year = new Date().getFullYear()
 /* Las anclas se detienen bajo el HUD y la nav, no debajo de ellos */
 .shell :deep(.stage) {
   scroll-margin-top: calc(var(--hud-h) + 52px);
-}
-
-.tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s-3);
-  margin-top: var(--s-6);
-  padding-top: var(--s-4);
-  border-top: 1px dashed var(--c-line);
-}
-
-.tools__key { flex: none; }
-
-.tools__list {
-  font-size: var(--t-sm);
-  color: var(--c-ink-dim);
 }
 
 /* --- Pantalla de resultados --------------------------------- */

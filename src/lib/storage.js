@@ -62,4 +62,5 @@ export const STORAGE_KEYS = Object.freeze({
   SCORES: 'scores',
   INITIALS: 'initials',
   BEST: 'best',
+  LOCALE: 'locale',
 })

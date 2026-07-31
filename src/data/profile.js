@@ -20,62 +20,97 @@ export const identity = {
 }
 
 /* ============================================================
-   STACK PRINCIPAL — la tira que ve el reclutador sin scroll.
-   Orden = prioridad real, no alfabético ni cronológico. Lo
-   primero de la lista es lo que mejor dominas, y así se lee.
-   Máximo 6: a partir de ahí deja de ser una señal y pasa a ser
-   una lista de la compra.
+   STACK PRINCIPAL — el "inventario" que se ve nada más entrar,
+   antes de hacer scroll. Se agrupa en las 4 categorías con las
+   que un fullstack real organiza su cabeza: qué corre en el
+   servidor, qué corre en el navegador, dónde viven los datos, y
+   las herramientas que no encajan en ninguna de las anteriores.
+   `lead: true` como máximo UNA vez por columna — es la pieza
+   "equipada", no una etiqueta que se reparte a todos por igual.
    ============================================================ */
-export const primaryStack = [
-  { id: 'laravel',    label: 'Laravel',    kind: 'Backend',  lead: true },
-  { id: 'javascript', label: 'JavaScript', kind: 'Lenguaje' },
-  { id: 'sql',        label: 'SQL',        kind: 'Datos' },
-  { id: 'postgresql', label: 'PostgreSQL', kind: 'Base de datos' },
-  { id: 'vue',        label: 'Vue.js',     kind: 'Frontend' },
-  { id: 'node',       label: 'Node.js',    kind: 'Backend' },
-]
-
-/**
- * Detalle del stack (sección 02). `level` es 0–100 y se dibuja
- * como barra de EXP. `note` explica en qué lo has usado de verdad
- * — evita el clásico listado de logos sin contexto.
- */
-export const stack = [
-  { id: 'laravel',    label: 'Laravel',    level: 92, note: 'Eloquent, colas, políticas de autorización, testing con Pest' },
-  { id: 'javascript', label: 'JavaScript', level: 88, note: 'ES2023, async, DOM y Canvas 2D' },
-  { id: 'sql',        label: 'SQL',        level: 85, note: 'Modelado, índices, planes de ejecución, consultas analíticas' },
-  { id: 'postgresql', label: 'PostgreSQL', level: 82, note: 'JSONB, vistas materializadas, migraciones sin downtime' },
-  { id: 'vue',        label: 'Vue.js',     level: 80, note: 'Composition API, SFC, composables, Pinia' },
-  { id: 'node',       label: 'Node.js',    level: 74, note: 'APIs REST, funciones serverless, scripting' },
-]
-
-/** Herramientas secundarias. Se listan en texto, sin barra. */
-export const toolbelt = [
-  'Git', 'Docker', 'Redis', 'Figma', 'Postman', 'Linux', 'Vite',
+export const stackColumns = [
+  {
+    id: 'back',
+    label: 'Back Stack',
+    items: [
+      { label: 'Laravel',  icon: 'laravel',  level: 92, note: 'Eloquent, colas, políticas de autorización, testing con Pest', lead: true },
+      { label: 'PHP',      icon: 'php',      level: 88, note: 'Tipado gradual, POO, Composer' },
+      { label: 'Node.js',  icon: 'node',     level: 74, note: 'APIs REST, funciones serverless, scripting' },
+      { label: 'Livewire', icon: 'livewire', level: 78, note: 'Componentes reactivos sin salir de Blade' },
+    ],
+  },
+  {
+    id: 'front',
+    label: 'Front Stack',
+    items: [
+      { label: 'Vue.js',      icon: 'vue',        level: 80, note: 'Composition API, SFC, composables, Pinia', lead: true },
+      { label: 'JavaScript',  icon: 'javascript', level: 88, note: 'ES2023, async, DOM y Canvas 2D' },
+      { label: 'HTML',        icon: 'html',       level: 85, note: 'Semántica y accesibilidad' },
+      { label: 'CSS',         icon: 'css',        level: 82, note: 'Flexbox, Grid, animaciones' },
+    ],
+  },
+  {
+    id: 'database',
+    label: 'Database',
+    items: [
+      { label: 'PostgreSQL', icon: 'postgresql', level: 82, note: 'JSONB, vistas materializadas, migraciones sin downtime', lead: true },
+      { label: 'SQL',        iconText: 'SQL',    level: 85, note: 'Modelado, índices, planes de ejecución' },
+      { label: 'Redis',      icon: 'redis',      level: 70, note: 'Cache y sorted sets — el ranking de este sitio corre aquí' },
+    ],
+  },
+  {
+    id: 'misc',
+    label: 'Miscellaneous',
+    items: [
+      { label: 'Git',      icon: 'git',     level: 90, note: 'Control de versiones, flujos de ramas', lead: true },
+      { label: 'Docker',   icon: 'docker',  level: 75, note: 'Contenedores para entornos reproducibles' },
+      { label: 'Azure',    icon: 'azure',   level: 65, note: 'Pipelines y despliegue' },
+      { label: 'Jira',     icon: 'jira',    level: 80, note: 'Gestión ágil de tareas' },
+    ],
+  },
 ]
 
 /* ============================================================
    EXPERIENCIA
    `impact` es obligatorio: una línea con el resultado, no la tarea.
+   Orden: más reciente primero.
    ============================================================ */
 export const experience = [
   {
-    id: 'exp-1',
-    from: '2023',
-    to: 'Hoy',
-    role: 'Analista de Requerimientos',
-    org: 'Nombre de la empresa',
-    impact: 'Sustituí la toma de requisitos por correo con un proceso documentado; el retrabajo por malentendidos cayó de forma medible.',
-    tags: ['Análisis', 'Documentación', 'SQL'],
+    id: 'exp-linktic-qa-ssr',
+    from: '06/2025',
+    to: 'Actualidad',
+    role: 'Analista QA Semisenior',
+    org: 'LinkTic (Remoto)',
+    impact: 'Traduzco requisitos de negocio en historias de usuario y casos de uso, y automatizo las pruebas de regresión con Puppeteer — menos tiempo de QA manual en cada entrega.',
+    tags: ['Análisis de requisitos', 'QA', 'Puppeteer', 'Automatización'],
   },
   {
-    id: 'exp-2',
-    from: '2021',
-    to: '2023',
-    role: 'Desarrollador Full Stack',
-    org: 'Nombre de la empresa',
-    impact: 'Construí y mantuve el frontend en Vue de la plataforma interna, con backend Laravel y PostgreSQL.',
-    tags: ['Laravel', 'Vue', 'PostgreSQL'],
+    id: 'exp-linktic-tester',
+    from: '09/2024',
+    to: '06/2025',
+    role: 'Tester Junior',
+    org: 'LinkTic (Remoto)',
+    impact: 'Ejecuté y documenté casos de prueba, validé correcciones y automaticé pruebas de regresión con Puppeteer, sentando la base del proceso que hoy mantengo como semisenior.',
+    tags: ['Testing', 'Puppeteer', 'Automatización', 'Documentación de bugs'],
+  },
+  {
+    id: 'exp-nerdcom',
+    from: '06/2024',
+    to: '09/2024',
+    role: 'Desarrollador Fullstack',
+    org: 'NerdCom SRL (Remoto)',
+    impact: 'Implementé un sistema multilingüe end-to-end y rediseñé módulos completos de la aplicación (Livewire + Metronic 7), coordinando directamente con el dueño del producto los cambios de estética y usabilidad.',
+    tags: ['Livewire', 'Metronic 7', 'Fullstack', 'i18n'],
+  },
+  {
+    id: 'exp-shokworks',
+    from: '12/2023',
+    to: '06/2024',
+    role: 'Backend Developer Trainee',
+    org: 'Shokworks, Inc (Remoto)',
+    impact: 'Construí servicios y APIs en Laravel y componentes reutilizables en Vue.js: mi primera experiencia profesional resolviendo bugs reales bajo mentoring de un equipo senior.',
+    tags: ['Laravel', 'APIs REST', 'Vue.js'],
   },
 ]
 
@@ -141,6 +176,14 @@ export const about = {
     'Empecé por el lado del análisis: entender qué necesita alguien antes de escribir una línea de código. Sigo pensando que ahí se gana o se pierde un proyecto.',
     'Programo sobre todo en Laravel, y disfruto la parte que no se ve: el modelo de datos, las consultas que no se van de tiempo, el código que otra persona puede leer dentro de un año.',
   ],
+  // Formación reglada. Un solo título, así que un objeto y no una
+  // lista — si algún día hay más de uno, esto pasa a array sin
+  // tocar AboutPanel.vue más que el v-for.
+  education: {
+    degree: 'Ingeniería de Sistemas',
+    institution: 'Instituto Universitario Politécnico Santiago Mariño',
+    year: '2023',
+  },
   // Los hobbies se presentan como partidas guardadas: mantiene el
   // tono sin convertirse en un chiste que se agota a la segunda línea.
   hobbies: [
@@ -159,7 +202,7 @@ export const about = {
 export const contact = [
   { id: 'email',    label: 'Email',    value: 'williamyenn@gmail.com', href: 'mailto:williamyenn@gmail.com' },
   { id: 'github',   label: 'GitHub',   value: 'github.com/tu-usuario', href: 'https://github.com/tu-usuario' },
-  { id: 'linkedin', label: 'LinkedIn', value: 'in/tu-usuario',         href: 'https://www.linkedin.com/in/tu-usuario' },
+  { id: 'linkedin', label: 'LinkedIn', value: 'in/salazar-william',    href: 'https://www.linkedin.com/in/salazar-william/' },
 ]
 
 /**
