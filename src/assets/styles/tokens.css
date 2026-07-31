@@ -1,0 +1,100 @@
+/* ============================================================
+   TOKENS — Dirección visual: "CRT Terminal / Arcade oscuro"
+   Fuente única de verdad para color, tipografía y ritmo.
+   No escribas un hex suelto en ningún componente: añádelo aquí.
+   ============================================================ */
+
+:root {
+  /* --- SUPERFICIES ---------------------------------------
+     Negro con sesgo azul, no negro puro: así se ve el vidrio
+     del tubo, y los fósforos verdes "flotan" sobre él.       */
+  --c-void:        #04060a;
+  --c-panel:       #0b1118;
+  --c-panel-hi:    #131c26;
+  --c-grid:        #1e2b38;
+  --c-line:        #27384a;
+
+  /* --- FÓSFOROS ------------------------------------------
+     Cuatro fósforos con trabajo asignado, no decoración.
+     phosphor = identidad · amber = datos · magenta = peligro
+     cyan = navegable                                          */
+  --c-phosphor:    #38edac;
+  --c-phosphor-lo: #1c7a59;
+  --c-amber:       #ffc24b;
+  --c-magenta:     #ff3d71;
+  --c-cyan:        #52d9ff;
+
+  /* --- TEXTO --------------------------------------------- */
+  --c-ink:         #d9e6e2;
+  --c-ink-dim:     #7d938e;
+  /* ink-faint es el tono más apagado que seguimos considerando
+     texto. Está calibrado a 4.81:1 sobre --c-void y 4.50:1 sobre
+     --c-panel: justo por encima del umbral AA. No bajarlo más. */
+  --c-ink-faint:   #6a807a;
+
+  /* --- TIPOGRAFÍA ----------------------------------------
+     3 roles. Silkscreen es bitmap real (pixel de 1px) y se usa
+     SOLO en titulares y HUD. El cuerpo del CV va en JetBrains
+     Mono porque un reclutador tiene que poder leerlo a 15px.
+     VT323 queda para cifras grandes, donde su sangrado CRT
+     es la gracia y no un problema de legibilidad.             */
+  --f-display: 'Silkscreen', 'Courier New', monospace;
+  --f-body:    'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+  --f-numeric: 'VT323', 'Courier New', monospace;
+
+  /* Escala tipográfica — cuarta menor (1.25), fluida */
+  --t-2xs: 0.6875rem;
+  --t-xs:  0.75rem;
+  --t-sm:  0.8125rem;
+  --t-base: 0.9375rem;
+  --t-md:  clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+  --t-lg:  clamp(1.25rem, 1.1rem + 0.7vw, 1.5rem);
+  --t-xl:  clamp(1.6rem, 1.3rem + 1.5vw, 2.25rem);
+  --t-2xl: clamp(2.2rem, 1.6rem + 3vw, 4rem);
+
+  --lh-tight: 1.15;
+  --lh-body:  1.65;
+  --ls-wide:  0.14em;
+  --ls-xwide: 0.28em;
+
+  /* --- RITMO ESPACIAL — escala de 8px, como un tilemap ---- */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  24px;
+  --s-6:  32px;
+  --s-7:  48px;
+  --s-8:  64px;
+  --s-9:  96px;
+
+  /* --- ESTRUCTURA ---------------------------------------- */
+  --w-content: 68rem;
+  --w-prose:   44rem;
+  --hud-h:     40px;
+
+  /* --- BORDES Y SOMBRAS ----------------------------------
+     Radio 0 en todo: un píxel no tiene esquinas redondeadas.
+     La sombra es un desplazamiento duro, no un blur.         */
+  --r-none: 0;
+  --b-hair: 1px solid var(--c-line);
+  --b-solid: 2px solid var(--c-grid);
+  --shadow-hard: 4px 4px 0 rgba(0, 0, 0, 0.7);
+  --shadow-hard-lg: 8px 8px 0 rgba(0, 0, 0, 0.75);
+  --glow-phosphor: 0 0 12px rgba(56, 237, 172, 0.35);
+  --glow-magenta:  0 0 12px rgba(255, 61, 113, 0.4);
+
+  /* --- MOVIMIENTO ---------------------------------------- */
+  --ease-crt: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap: steps(6, end);
+  --d-fast: 140ms;
+  --d-base: 280ms;
+  --d-slow: 800ms;
+
+  /* --- CAPAS --------------------------------------------- */
+  --z-canvas: 0;
+  --z-content: 10;
+  --z-hud: 40;
+  --z-crt: 60;
+  --z-modal: 80;
+}

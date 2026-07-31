@@ -1,0 +1,159 @@
+/* ============================================================
+   BASE — reset, tipografía global y utilidades mínimas.
+   Todo lo estructural. Nada específico de un componente.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@400;500;700&family=VT323&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--c-void);
+  color: var(--c-ink);
+  font-family: var(--f-body);
+  font-size: var(--t-base);
+  line-height: var(--lh-body);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* El scroll se bloquea desde JS al entrar en fase de juego.
+   Clase, no estilo inline: así queda revertible y auditable. */
+body.is-locked {
+  overflow: hidden;
+}
+
+img,
+svg,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* Pixel art nítido. Se aplica sólo donde hay pixel art real,
+   nunca a la foto de perfil ni a texto. */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--c-cyan);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color var(--d-fast) var(--ease-crt),
+              border-color var(--d-fast) var(--ease-crt);
+}
+
+a:hover {
+  color: var(--c-phosphor);
+  border-bottom-color: var(--c-phosphor);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Foco visible y en la paleta. Nunca outline: none sin sustituto. */
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--c-amber);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--c-phosphor);
+  color: var(--c-void);
+}
+
+/* Scrollbar en carácter con el resto */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--c-void);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--c-grid);
+  border: 2px solid var(--c-void);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-phosphor-lo);
+}
+
+/* --- Utilidades ------------------------------------------- */
+
+.u-shell {
+  width: min(100% - var(--s-5) * 2, var(--w-content));
+  margin-inline: auto;
+}
+
+.u-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Etiqueta de dato: el patrón tipográfico que se repite en
+   todo el sitio para nombrar campos (STACK, NIVEL, BASE...) */
+.u-label {
+  font-family: var(--f-display);
+  font-size: var(--t-2xs);
+  letter-spacing: var(--ls-xwide);
+  text-transform: uppercase;
+  color: var(--c-ink-faint);
+}
+
+/* --- Accesibilidad: movimiento reducido -------------------
+   Se apagan animaciones ambientales, no las transiciones de
+   estado que comunican qué ha pasado.                        */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

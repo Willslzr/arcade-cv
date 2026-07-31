@@ -1,0 +1,97 @@
+/* ============================================================
+   CRT — la capa de vidrio.
+   Tres efectos apilados y sutiles: rejilla de apertura,
+   viñeta y barrido de refresco. Van en un overlay fijo con
+   pointer-events:none para no tocar nunca la interacción.
+   ============================================================ */
+
+.crt {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-crt);
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+
+/* 1. Rejilla de apertura: líneas horizontales (scanlines) +
+      máscara vertical RGB. 3px de paso para que a 1x no
+      produzca moiré con el texto.                            */
+.crt__grille {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.32) 0px,
+      rgba(0, 0, 0, 0.32) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 0, 0, 0.05) 0px,
+      rgba(0, 255, 0, 0.05) 1px,
+      rgba(0, 0, 255, 0.05) 2px,
+      transparent 3px
+    );
+  opacity: 0.55;
+}
+
+/* 2. Viñeta: el tubo pierde brillo en las esquinas. */
+.crt__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 120% 100% at 50% 50%,
+    transparent 45%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  mix-blend-mode: multiply;
+}
+
+/* 3. Barrido de refresco: una banda tenue que cruza la
+      pantalla cada 7s. Es lo único que se mueve solo. */
+.crt__sweep {
+  position: absolute;
+  inset-inline: 0;
+  height: 28vh;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(56, 237, 172, 0.05) 45%,
+    rgba(210, 255, 240, 0.09) 50%,
+    rgba(56, 237, 172, 0.05) 55%,
+    transparent
+  );
+  animation: crt-sweep 7s linear infinite;
+}
+
+@keyframes crt-sweep {
+  0%   { transform: translateY(-30vh); }
+  100% { transform: translateY(130vh); }
+}
+
+/* Intensidad del efecto según fase: durante el glitch el
+   tubo se descontrola, en el juego casi desaparece para no
+   comerse los fotogramas ni ensuciar los sprites.            */
+.crt[data-phase='glitch'] .crt__grille { opacity: 0.85; }
+.crt[data-phase='game']   .crt__grille { opacity: 0.28; }
+.crt[data-phase='game']   .crt__sweep  { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .crt__sweep { display: none; }
+}
+
+/* ------------------------------------------------------------
+   Aberración cromática: texto con sangrado rojo/cian, como un
+   monitor mal convergido. Utilidad reutilizable.
+   ------------------------------------------------------------ */
+.crt-bleed {
+  text-shadow:
+    -1px 0 rgba(255, 61, 113, 0.55),
+     1px 0 rgba(82, 217, 255, 0.45);
+}
+
+.crt-glow {
+  text-shadow: 0 0 10px currentColor;
+}
