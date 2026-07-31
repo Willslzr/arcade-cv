@@ -34,6 +34,10 @@ export const ENEMY = Object.freeze({
   baseScore: 100,
   driftAmplitude: 40,
   fireChancePerSecond: 0.25,
+  poolSize: 32,             // techo de enemigos vivos a la vez en pantalla
+  defaultPathDurationS: 4.5, // duración de vuelo si una ola no la especifica
+  formationSpacing: 70,     // separación en px entre naves de una misma formación
+  formationStaggerMs: 160,  // retraso entre apariciones en formaciones "en cola"
 })
 
 export const BOSS = Object.freeze({
@@ -41,7 +45,14 @@ export const BOSS = Object.freeze({
   hp: 40,
   score: 5000,
   speed: 130,
+  entrySpeed: 90,           // px/s durante la cinemática de entrada
   phaseHpRatios: [1, 0.66, 0.33], // cambios de patrón por vida restante
+})
+
+export const EXPLOSION = Object.freeze({
+  scale: 5,
+  frameMs: 90,   // ritmo del parpadeo de sus 3 fotogramas
+  poolSize: 16,
 })
 
 export const SCORING = Object.freeze({

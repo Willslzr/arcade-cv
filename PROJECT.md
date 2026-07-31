@@ -7,7 +7,7 @@
 > cambios* y *Pendiente*. Sé concreto y breve; esto no es un diario.
 
 **Última actualización:** 2026-07-30
-**Fase actual:** 3 de 6 — disparo y proyectiles del jugador completados
+**Fase actual:** 4 de 6 — diseño de niveles completado (enemigos, oleadas, jefe)
 
 ---
 
@@ -117,13 +117,21 @@ arcade-cv/
 │       │   └── InputHandler.js   Teclado, ejes normalizados, captura condicional
 │       ├── entities/
 │       │   ├── Entity.js         Base: bounds, kill, reset (para pooling)
-│       │   └── Player.js         Nave con inercia y entrada cinemática
+│       │   ├── Player.js         Nave con inercia y entrada cinemática
+│       │   ├── Projectile.js     Un solo tipo; `faction` decide dirección/sprite/colisión
+│       │   ├── Enemy.js          Patrón de vuelo inyectado como función (ver PATHS)
+│       │   ├── Explosion.js      Animación de 3 fotogramas, se auto-destruye
+│       │   └── Boss.js           Vida múltiple, 3 fases según BOSS.phaseHpRatios
 │       ├── render/
 │       │   └── Starfield.js      Fondo de estrellas, 3 capas de paralaje
-│       ├── systems/              (vacío — fase 4: colisiones, oleadas)
+│       ├── systems/
+│       │   ├── Pool.js             Pool genérico: recicla con Entity.reset(), cero GC en ráfaga
+│       │   ├── CollisionSystem.js  AABB puro, sin dependencias de Entity
+│       │   └── WaveManager.js      Lee waves.js, instancia formaciones, avisa al limpiar ola
 │       └── config/
 │           ├── spriteMap.js      Coordenadas del atlas
-│           └── balance.js        Todas las constantes de juego
+│           ├── balance.js        Todas las constantes de juego
+│           └── waves.js          El nivel como datos: 4 oleadas coreografiadas
 │
 ├── index.html                    Meta, OG, JSON-LD, preload del atlas
 ├── vercel.json                   Runtime, cabeceras de seguridad y caché
@@ -343,6 +351,12 @@ visual. Al entrar en partida cambia de contenido a oleada y vidas.
 - [x] **Fase 3 — disparo y proyectiles** — `Projectile` (un solo tipo,
       `faction`), `Pool` genérico sin asignación en caliente, disparo del
       jugador con cooldown, `CollisionSystem` (AABB puro) listo para Fase 4
+- [x] **Fase 4 — diseño de niveles** — `Enemy` con patrones de vuelo
+      inyectados como función; `Explosion` de 3 fotogramas autodestructiva;
+      `waves.js` como datos puros (4 oleadas); `WaveManager` que las lee,
+      instancia formaciones y avisa al limpiar cada ola; `Boss` con 3 fases
+      por vida restante. Simulado en Node sin UI: las 4 oleadas limpian en
+      orden, el jefe atraviesa sus 3 fases correctamente.
 - [x] **Rediseño completo** — sistema de tokens, 8 componentes nuevos, capa CRT
 - [x] **Arquitectura** — carpetas por responsabilidad, alias `@`, contenido en `data/`
 - [x] **Backend** — API de ranking con firma HMAC, rate limit y degradación
@@ -371,15 +385,20 @@ visual. Al entrar en partida cambia de contenido a oleada y vidas.
 **Fase 3 — completar el motor**
 - [ ] Controles táctiles: sin ellos, en móvil el juego no existe
 
-**Fase 4 — combate**
-- [ ] `entities/Enemy.js` y `entities/Explosion.js`
-- [ ] Cablear `Engine.collisions.resolve()` contra el grupo de enemigos
-      (proyectil del jugador → enemigo; ahora mismo el sistema existe y
-      está probado pero sin segundo grupo con el que llamarlo)
+**Fase 4 — cablear el combate en el motor**
+Todo lo de más abajo existe y está probado de forma aislada (script de
+simulación en Node), pero `Engine.js` todavía no los conoce: hoy sólo
+mueve al jugador y sus proyectiles.
+- [ ] `Engine` instancia `WaveManager` y `Boss`, y llama a
+      `waveManager.update(delta, view)` en fase `game`
+- [ ] `Engine.collisions.resolve()` contra el grupo de enemigos
+      (proyectil del jugador → `enemy.takeHit()`, otorga `enemy.score`)
+- [ ] `onLevelClear` de `WaveManager` dispara `new Boss(...)` + `.enter()`
+- [ ] Colisión jugador ↔ enemigo/proyectil enemigo (vidas, `PLAYER.invulnMs`)
 - [ ] Proyectiles enemigos: `Projectile` ya soporta `faction: 'enemy'`,
-      falta que algo los dispare
-- [ ] `systems/WaveManager.js` + `config/waves.js` con oleadas coreografiadas
-- [ ] `entities/Boss.js` con fases por vida restante
+      falta que `Enemy`/`Boss` disparen (`ENEMY.fireChancePerSecond` ya
+      existe en balance.js, sin usar todavía)
+- [ ] Pool de `Explosion` en `Engine`, disparado al matar enemigo/jefe
 
 **Fase 5 — cierre**
 - [ ] `components/game/GameHud.vue` (puntuación en partida)
@@ -460,6 +479,41 @@ huecos y puedes publicar antes de tener las capturas.
 ## 10. Registro de cambios
 
 > Una línea por sesión. Qué cambió y por qué, no cómo.
+
+### 2026-07-30 (4) — Diseño de niveles: enemigos, oleadas y jefe
+- `entities/Enemy.js` nuevo: el tipo (letra del atlas) sólo cambia el
+  sprite; el patrón de vuelo es una función en `PATHS` que `WaveManager`
+  inyecta en `reset()`. Seis patrones: `sweepLeftToRight/RightToLeft`,
+  `diagonalFromLeft/FromRight`, `sineDive`, `loopDrop`. Añadir un
+  patrón nuevo es añadir una función; `Enemy` nunca distingue por ifs.
+- `entities/Explosion.js` nuevo: animación de 3 fotogramas del atlas
+  (`explosion`/`2`/`3`), se auto-destruye (`kill()`) al agotarlos.
+  `x, y` son el centro, para poder pasar `centerX/centerY` directos.
+- `config/waves.js` nuevo: el nivel como datos. Cuatro oleadas —
+  Reconocimiento, Picado en V, Tenaza, Enjambre— pensadas para
+  aprenderse: cada una introduce una idea y la repite antes de pasar a
+  la siguiente; la última combina las cuatro. El jefe no vive aquí:
+  no es una formación de enemigos, es una entidad única.
+- `systems/WaveManager.js` nuevo: lee `waves.js`, resuelve `formation`
+  (posiciones relativas: `line5`, `v5`, `column4`, `stagger6`) y `path`
+  contra tablas propias/de `Enemy`, encola apariciones con retraso y
+  avisa (`onWaveClear`, `onLevelClear`) sin que el fichero de datos
+  sepa nada de tiempos de asentamiento.
+- `entities/Boss.js` nuevo: vida múltiple, patrulla horizontal con
+  balanceo vertical creciente. Las 3 fases de `BOSS.phaseHpRatios` no
+  son comportamientos distintos: son dos multiplicadores (velocidad,
+  amplitud) sobre la misma fórmula. `boss4` no es una cuarta fase: es
+  el fotograma de flash al recibir impacto, para aprovechar los 4
+  sprites del atlas sin inventar un umbral que `phaseHpRatios` no tiene.
+- `balance.js` gana `ENEMY.poolSize/defaultPathDurationS/formationSpacing
+  /formationStaggerMs`, `BOSS.entrySpeed` y el bloque `EXPLOSION`.
+- Verificado con un script de simulación en Node (sin UI): las 4 oleadas
+  limpian en orden, el jefe recorre sus 3 fases al perder vida, la
+  explosión se autodestruye a los 3 fotogramas, el AABB detecta solape
+  y no-solape correctamente. Ninguna posición se vuelve `NaN`.
+- **Sin cablear en `Engine` todavía** (no pedido en esta sesión): estos
+  cinco módulos existen y funcionan de forma aislada, pero el motor no
+  los invoca aún. Ver Pendiente §8.
 
 ### 2026-07-30 (3) — Proyectiles y disparo del jugador
 - `entities/Projectile.js` nuevo: un solo tipo con propiedad `faction`
